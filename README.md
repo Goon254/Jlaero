@@ -3,7 +3,9 @@
 **The marketplace for private aviation** - charter jets, hire pilots & crew, and
 buy or sell aircraft. Web app + mobile app. "Uber for private jets."
 
-See [`PLAN.md`](./PLAN.md) for the product & architecture plan, and
+See [`ROADMAP.md`](./ROADMAP.md) for the full build plan (every page and screen
+through App Store / Play Store launch; we build by following it),
+[`PLAN.md`](./PLAN.md) for the product & architecture overview, and
 [`MIGRATION.md`](./MIGRATION.md) for notes on retiring the old WordPress site.
 
 ## Stack
