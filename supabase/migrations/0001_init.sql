@@ -222,7 +222,7 @@ create table sale_inquiries (
 );
 
 -- ---------------------------------------------------------------------------
--- Bookings (charter or crew) — the shared engine
+-- Bookings (charter or crew): the shared engine
 -- ---------------------------------------------------------------------------
 create table bookings (
   id               uuid primary key default gen_random_uuid(),

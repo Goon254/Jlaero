@@ -1,4 +1,4 @@
-// Zod schemas — one source of truth for validation on web, mobile, and API.
+// Zod schemas: one source of truth for validation on web, mobile, and API.
 import { z } from "zod";
 import {
   ACCOUNT_TYPES,

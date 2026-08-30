@@ -32,7 +32,7 @@ export function PageShell({
 export function ComingSoon({ what }: { what: string }) {
   return (
     <div className="rounded-2xl border border-dashed border-slate-700 p-10 text-center text-slate-400">
-      {what} is coming next. The database and accounts are live — listings and
+      {what} is coming next. The database and accounts are live. Listings and
       booking flow are being built.
     </div>
   );

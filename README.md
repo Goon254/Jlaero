@@ -1,6 +1,6 @@
 # Jlaero
 
-**The marketplace for private aviation** — charter jets, hire pilots & crew, and
+**The marketplace for private aviation** - charter jets, hire pilots & crew, and
 buy or sell aircraft. Web app + mobile app. "Uber for private jets."
 
 See [`PLAN.md`](./PLAN.md) for the product & architecture plan, and
@@ -30,10 +30,10 @@ site/             Legacy WordPress mirror (reference only; core is gitignored)
 
 ## Getting started
 
-Prereqs: Node 20+ and pnpm 9. **No Docker needed** — we use a hosted Supabase
+Prereqs: Node 20+ and pnpm 9. **No Docker needed** - we use a hosted Supabase
 project as the database.
 
-### Option A — Cloud Supabase (recommended, no Docker)
+### Option A - Cloud Supabase (recommended, no Docker)
 
 1. Create a project at https://supabase.com → copy the Project URL, anon key,
    and service_role key from **Settings → API**.
@@ -50,7 +50,7 @@ project as the database.
    pnpm dev                          # -> http://localhost:3000
    ```
 
-### Option B — Local Supabase (needs Docker)
+### Option B - Local Supabase (needs Docker)
 
 Only if you want an offline, resettable local database:
 

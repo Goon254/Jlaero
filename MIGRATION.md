@@ -1,4 +1,4 @@
-# Jlaero — Migration Notes
+# Jlaero - Migration Notes
 
 Moving the existing **jlaero.com** WordPress site (hosted via cPanel, provider: Corzone)
 into this git repository, ahead of rebuilding/revamping the project.
@@ -7,7 +7,7 @@ into this git repository, ahead of rebuilding/revamping the project.
 
 | Piece                     | Location                          | Status |
 |---------------------------|-----------------------------------|--------|
-| Site files (`public_html`)| `site/` (local backup, gitignored)| ✅ mirrored via FTP — 10,733 files / 265 MB |
+| Site files (`public_html`)| `site/` (local backup, gitignored)| ✅ mirrored via FTP - 10,733 files / 265 MB |
 | WordPress database        | MySQL `jlaadmin_wp483` (localhost)| **manual export needed** (see below) |
 | Credentials               | `CREDENTIALS.md` (gitignored)     | done |
 
@@ -18,7 +18,7 @@ into this git repository, ahead of rebuilding/revamping the project.
 - Security plugin: Really Simple Security
 - PHP host: Apache on cPanel (Newfold/Bluehost-style stack)
 
-## Database — DECISION: skipped
+## Database - DECISION: skipped
 
 We are **not** migrating the old WordPress database. Reasons:
 
@@ -42,4 +42,4 @@ cPanel → **Backup** → *Download a MySQL Database Backup* → `jlaadmin_wp483
 - Real product, not a WordPress marketing site
 
 The `site/` mirror and the old marketing copy serve only as reference for
-branding, imagery, and existing content — the codebase will be new.
+branding, imagery, and existing content - the codebase will be new.

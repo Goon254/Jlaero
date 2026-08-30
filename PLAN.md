@@ -1,4 +1,4 @@
-# Jlaero — Platform Plan
+# Jlaero - Platform Plan
 
 **Jlaero is a private-aviation marketplace: "Uber for private jets."**
 Web app + mobile app, launching as a real product.
@@ -18,9 +18,9 @@ Four sides:
 
 Three marketplaces inside one platform:
 
-- **A. Charter booking** — book a private jet for a trip
-- **B. Crew marketplace** — book pilots, flight attendants, crew
-- **C. Aircraft sales** — list & inquire on jets for sale
+- **A. Charter booking** - book a private jet for a trip
+- **B. Crew marketplace** - book pilots, flight attendants, crew
+- **C. Aircraft sales** - list & inquire on jets for sale
 
 Booking modes: **instant-book** (where the operator enables it, Uber-style) **or
 request → quote → negotiate** over in-app messaging.
@@ -29,20 +29,20 @@ request → quote → negotiate** over in-app messaging.
 
 ## 2. Core features
 
-- **Accounts & roles** — one account can be traveler *and* owner *and* crew
-- **Verification / KYC** — critical in aviation: operator certificates, pilot
+- **Accounts & roles** - one account can be traveler *and* owner *and* crew
+- **Verification / KYC** - critical in aviation: operator certificates, pilot
   licenses & ratings, insurance, ID. High-trust, high-ticket.
-- **Listings** — aircraft (charter), aircraft (for sale), crew profiles; photos,
+- **Listings** - aircraft (charter), aircraft (for sale), crew profiles; photos,
   specs, base airport, pricing, availability calendar
-- **Search & discovery** — by route, date, passengers, aircraft type, price
-- **Booking engine** — states: requested → quoted → negotiating → accepted →
+- **Search & discovery** - by route, date, passengers, aircraft type, price
+- **Booking engine** - states: requested → quoted → negotiating → accepted →
   paid → completed → reviewed (also cancelled/refunded)
-- **In-app messaging** — real-time, for negotiation and coordination
-- **Payments & payouts** — hold funds, release on completion, platform fee,
+- **In-app messaging** - real-time, for negotiation and coordination
+- **Payments & payouts** - hold funds, release on completion, platform fee,
   payouts to owners/crew (marketplace model)
-- **Reviews & ratings** — both directions
-- **Notifications** — push (mobile) + email
-- **Admin dashboard** — verification queue, moderation, disputes, payouts
+- **Reviews & ratings** - both directions
+- **Notifications** - push (mobile) + email
+- **Admin dashboard** - verification queue, moderation, disputes, payouts
 
 ---
 
@@ -61,7 +61,7 @@ One language (TypeScript) across web, mobile, and backend, in a monorepo.
 | **Monorepo** | pnpm + Turborepo, shared `packages/` for types & validation (Zod) | Type-safe end to end |
 
 Alternative if we want full control over the backend: custom **NestJS + Postgres**
-API instead of Supabase — more power, more work. Recommendation is Supabase to
+API instead of Supabase - more power, more work. Recommendation is Supabase to
 reach launch faster; we can peel off custom services later.
 
 ---
@@ -84,15 +84,15 @@ reach launch faster; we can peel off custom services later.
 
 ## 5. Build order (ship one full loop first)
 
-- **Phase 0 — Foundation:** monorepo, infra, auth, roles, data model, design system
-- **Phase 1 — Charter MVP (end-to-end):** owner lists jet → traveler searches →
+- **Phase 0 - Foundation:** monorepo, infra, auth, roles, data model, design system
+- **Phase 1 - Charter MVP (end-to-end):** owner lists jet → traveler searches →
   book/request → message → pay → complete → review. *This proves the whole engine.*
-- **Phase 2 — Crew marketplace:** reuse the booking engine for pilots/crew
-- **Phase 3 — Aircraft sales:** listings + inquiries (lead-gen)
-- **Phase 4 — Mobile app:** bring web features to iOS/Android + push notifications
-- **Phase 5 — Launch hardening:** admin/ops tools, KYC, analytics, payments edge cases
+- **Phase 2 - Crew marketplace:** reuse the booking engine for pilots/crew
+- **Phase 3 - Aircraft sales:** listings + inquiries (lead-gen)
+- **Phase 4 - Mobile app:** bring web features to iOS/Android + push notifications
+- **Phase 5 - Launch hardening:** admin/ops tools, KYC, analytics, payments edge cases
 
-We get Phase 1 working completely before fanning out — everything else reuses it.
+We get Phase 1 working completely before fanning out - everything else reuses it.
 
 ---
 
