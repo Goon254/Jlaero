@@ -17,6 +17,7 @@ export default async function OwnerLayout({
         <div className="flex gap-5">
           <Link href="/owner" className="hover:text-gold">Overview</Link>
           <Link href="/owner/aircraft" className="hover:text-gold">My aircraft</Link>
+          <Link href="/owner/requests" className="hover:text-gold">Requests</Link>
           <Link href="/owner/documents" className="hover:text-gold">Documents</Link>
           <Link href="/dashboard" className="hover:text-gold">Dashboard</Link>
         </div>

@@ -136,7 +136,7 @@ for crash reporting, demo mode considerations for store reviewers.
 | S10 | Generated DB types | Replace placeholder [ ] |
 | S11 | Tests | State machine + actor matrix unit tests, RLS tests, quote math (incl. FET) tests, booking flow integration [ ] |
 | S12 | CI | GitHub Actions: typecheck, build, tests [ ] |
-| S13 | Seed script | Demo aircraft/crew/sales/bookings [ ] |
+| S13 | Seed script | Demo aircraft/crew/sales/bookings [x] scripts/seed.mjs |
 | S14 | Analytics | PostHog [ ] |
 | S15 | Error tracking | Sentry web + mobile [ ] |
 | S16 | Airports reference | OurAirports import: ICAO/IATA, name, city, coords, timezone, longest runway. Powers autocomplete ("JFK"/"KJFK"/"New York" resolve), near-me, distance, feasibility, airport-local times, route SEO pages [ ] |
@@ -282,12 +282,12 @@ here).
 **Done when:** schema and shared types express the full 3b/3c model and the
 state machine tests pass.
 
-### Phase 1: Charter supply
+### Phase 1: Charter supply  [x] DONE
 O1, O2, O3, O5, O10 + S4 + S13 + airport autocomplete off S16.
 **Done when:** an owner creates a listing with photos, docs, pricing fields,
 policy tier, and availability, and publishes it.
 
-### Phase 2: Charter demand
+### Phase 2: Charter demand  [x] DONE
 P2, P3, P10 + S8 (with feasibility filter).
 **Done when:** a visitor searches, sees only feasible aircraft, opens detail,
 and submits a request with legs + passengers that reaches the owner.
