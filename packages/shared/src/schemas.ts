@@ -63,23 +63,45 @@ export const saleListingSchema = z.object({
 });
 export type SaleListingInput = z.infer<typeof saleListingSchema>;
 
+export const legSchema = z.object({
+  origin: airportCode,
+  destination: airportCode.optional(),
+  depart_at: z.string().datetime().optional(),
+  passengers: z.number().int().min(1).max(600).optional(),
+  origin_fbo: z.string().trim().max(120).optional(),
+  destination_fbo: z.string().trim().max(120).optional(),
+});
+export type LegInput = z.infer<typeof legSchema>;
+
 export const bookingRequestSchema = z
   .object({
     kind: z.enum(BOOKING_KINDS),
     aircraft_id: z.string().uuid().optional(),
     crew_profile_id: z.string().uuid().optional(),
-    origin: airportCode.optional(),
-    destination: airportCode.optional(),
-    depart_at: z.string().datetime().optional(),
-    return_at: z.string().datetime().optional(),
-    passengers: z.number().int().min(1).max(600).optional(),
+    legs: z.array(legSchema).min(1).max(10),
+    pets: z.boolean().default(false),
+    luggage_notes: z.string().max(1000).optional(),
+    catering_notes: z.string().max(1000).optional(),
+    special_requests: z.string().max(2000).optional(),
     notes: z.string().max(2000).optional(),
   })
   .refine(
     (b) => (b.kind === "charter" ? !!b.aircraft_id : !!b.crew_profile_id),
     { message: "charter needs aircraft_id; crew needs crew_profile_id" }
+  )
+  .refine(
+    (b) => b.kind !== "charter" || b.legs.every((l) => !!l.destination),
+    { message: "charter legs need a destination" }
   );
 export type BookingRequestInput = z.infer<typeof bookingRequestSchema>;
+
+export const passengerSchema = z.object({
+  full_name: z.string().trim().min(1).max(160),
+  date_of_birth: z.string().date().optional(),
+  weight_kg: z.number().positive().max(300).optional(),
+  notes: z.string().max(500).optional(),
+});
+export type PassengerInput = z.infer<typeof passengerSchema>;
 
 export const messageSchema = z.object({
   conversation_id: z.string().uuid(),

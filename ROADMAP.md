@@ -271,7 +271,7 @@ expiring, payout sent/failed, verification approved/rejected.
 ### Phase 0: Foundation  [x] DONE
 Monorepo, schema + hardened RLS, auth, onboarding, dashboard, landing.
 
-### Phase 0.5: Domain schema upgrade (from this review; before any Phase 1 UI)
+### Phase 0.5: Domain schema upgrade  [x] DONE
 Migrations: booking_legs, booking_passengers, quotes + quote_line_items,
 contracts, cancellation policy tier on listings, pricing fields (daily
 minimum, overnight fee, positioning treatment), state machine v2 enums,
