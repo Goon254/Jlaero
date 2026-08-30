@@ -51,10 +51,11 @@ export default async function OwnerRequests() {
           {rows.map((b) => {
             const legs = [...b.booking_legs].sort((x, y) => x.position - y.position);
             return (
-              <li
-                key={b.id}
-                className="rounded-2xl border border-slate-800 bg-ink-soft p-5"
-              >
+              <li key={b.id}>
+                <a
+                  href={`/bookings/${b.id}`}
+                  className="block rounded-2xl border border-slate-800 bg-ink-soft p-5 hover:border-gold"
+                >
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-medium">
                     {b.profiles?.full_name ?? "A traveler"}
@@ -89,6 +90,7 @@ export default async function OwnerRequests() {
                     {b.special_requests ?? ""}
                   </p>
                 )}
+                </a>
               </li>
             );
           })}

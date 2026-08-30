@@ -111,5 +111,20 @@ export async function requestCharter(
   const { error: legsError } = await supabase.from("booking_legs").insert(legRows);
   if (legsError) return { error: legsError.message };
 
-  redirect("/bookings?requested=1");
+  // One conversation per booking; buyer bootstraps then adds the provider.
+  const { data: conversation } = await supabase
+    .from("conversations")
+    .insert({ booking_id: booking.id })
+    .select("id")
+    .single();
+  if (conversation) {
+    await supabase
+      .from("conversation_participants")
+      .insert({ conversation_id: conversation.id, user_id: user.id });
+    await supabase
+      .from("conversation_participants")
+      .insert({ conversation_id: conversation.id, user_id: aircraft.owner_id });
+  }
+
+  redirect(`/bookings/${booking.id}`);
 }

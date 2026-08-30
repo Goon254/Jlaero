@@ -99,10 +99,11 @@ function BookingList({
                 : `${first?.origin} → ${first?.destination}`
               : "";
             return (
-              <li
-                key={b.id}
-                className="flex items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-ink-soft px-5 py-4"
-              >
+              <li key={b.id}>
+                <a
+                  href={`/bookings/${b.id}`}
+                  className="flex items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-ink-soft px-5 py-4 hover:border-gold"
+                >
                 <div className="min-w-0">
                   <p className="font-medium">
                     {route}
@@ -129,6 +130,7 @@ function BookingList({
                 >
                   {b.status.replace(/_/g, " ")}
                 </span>
+                </a>
               </li>
             );
           })}

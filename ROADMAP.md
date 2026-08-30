@@ -292,7 +292,7 @@ P2, P3, P10 + S8 (with feasibility filter).
 **Done when:** a visitor searches, sees only feasible aircraft, opens detail,
 and submits a request with legs + passengers that reaches the owner.
 
-### Phase 3: Booking engine, quoting, messaging
+### Phase 3: Booking engine, quoting, messaging  [x] DONE
 A3, A4 (minus payment), A5, A6, O6 + S1, S2, S3, S19 + manifest editor +
 exclusion constraint + holds/expiries.
 **Done when:** request -> line-item quote (with FET) -> counter -> accept ->
