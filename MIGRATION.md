@@ -7,7 +7,7 @@ into this git repository, ahead of rebuilding/revamping the project.
 
 | Piece                     | Location                          | Status |
 |---------------------------|-----------------------------------|--------|
-| Site files (`public_html`)| `site/` in this repo              | mirrored via FTP |
+| Site files (`public_html`)| `site/` (local backup, gitignored)| ✅ mirrored via FTP — 10,733 files / 265 MB |
 | WordPress database        | MySQL `jlaadmin_wp483` (localhost)| **manual export needed** (see below) |
 | Credentials               | `CREDENTIALS.md` (gitignored)     | done |
 

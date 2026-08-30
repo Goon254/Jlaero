@@ -5,7 +5,7 @@ import {
   AIRCRAFT_CATEGORIES,
   BOOKING_KINDS,
   CREW_KINDS,
-} from "./constants.js";
+} from "./constants";
 
 const airportCode = z
   .string()

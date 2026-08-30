@@ -30,24 +30,35 @@ site/             Legacy WordPress mirror (reference only; core is gitignored)
 
 ## Getting started
 
-Prereqs: Node 20+, pnpm 9, and the [Supabase CLI](https://supabase.com/docs/guides/cli)
-+ Docker (for local Supabase).
+Prereqs: Node 20+ and pnpm 9. **No Docker needed** — we use a hosted Supabase
+project as the database.
+
+### Option A — Cloud Supabase (recommended, no Docker)
+
+1. Create a project at https://supabase.com → copy the Project URL, anon key,
+   and service_role key from **Settings → API**.
+2. Put them in `apps/web/.env` (see `.env.example`).
+3. Apply the schema to your cloud project with the Supabase CLI:
+   ```bash
+   pnpm dlx supabase login
+   pnpm dlx supabase link --project-ref <your-project-ref>
+   pnpm dlx supabase db push        # runs supabase/migrations
+   ```
+4. Run it:
+   ```bash
+   pnpm install
+   pnpm dev                          # -> http://localhost:3000
+   ```
+
+### Option B — Local Supabase (needs Docker)
+
+Only if you want an offline, resettable local database:
 
 ```bash
-pnpm install
-
-# start local Supabase (Postgres, auth, storage, studio)
-pnpm db:start          # -> Studio at http://localhost:54323
-pnpm db:reset          # apply migrations in supabase/migrations
-
-# generate typed DB types into packages/shared
-pnpm db:types
-
-# copy env and fill in the values printed by `supabase start`
-cp apps/web/.env.example apps/web/.env
-
-# run the web app
-pnpm dev               # -> http://localhost:3000
+pnpm db:start     # local Postgres/auth/storage; Studio at :54323
+pnpm db:reset     # apply migrations
+pnpm db:types     # regenerate typed DB types into packages/shared
+pnpm dev
 ```
 
 ## Environment

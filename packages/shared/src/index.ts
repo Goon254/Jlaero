@@ -1,3 +1,3 @@
-export * from "./constants.js";
-export * from "./schemas.js";
-export type { Database } from "./database.types.js";
+export * from "./constants";
+export * from "./schemas";
+export type { Database } from "./database.types";

@@ -1,4 +1,7 @@
 // Placeholder for Supabase-generated types.
-// After `supabase start`, regenerate with:  pnpm db:types
-// (runs: supabase gen types typescript --local > packages/shared/src/database.types.ts)
+// Generate real types later with EITHER:
+//   - Docker running:      pnpm dlx supabase gen types typescript --db-url "<pooler-url>"
+//   - a Supabase token:    pnpm dlx supabase login && \
+//                          pnpm dlx supabase gen types typescript --project-id ncxieabeqtwkomvzykul
+// then write the output to this file.
 export type Database = Record<string, never>;
