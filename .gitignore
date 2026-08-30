@@ -1,0 +1,40 @@
+# ---- Secrets ----
+CREDENTIALS.md
+.env
+.env.*
+!.env.example
+
+# Database dumps may contain user emails / password hashes — commit deliberately
+db/
+
+# ---- Legacy WordPress mirror (reference only) ----
+# Full mirror kept as a LOCAL backup on disk (off the old host), but not committed:
+# it's 200+ MB of WordPress core + media and doesn't belong in the product repo.
+# Brand assets we actually reuse get extracted into apps/web/public or assets/.
+site/
+
+# ---- Node / JS ----
+node_modules/
+.pnpm-store/
+dist/
+build/
+.next/
+out/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# ---- Expo / React Native ----
+.expo/
+*.orig.*
+web-build/
+
+# ---- Env & tooling ----
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# ---- Supabase ----
+supabase/.branches/
+supabase/.temp/
