@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { completeOnboarding, type OnboardingState } from "./actions";
 
 const initial: OnboardingState = {};
+
+const inputClass =
+  "w-full rounded-lg border border-slate-700 bg-ink-soft px-4 py-3 outline-none focus:border-gold";
 
 export default function OnboardingPage() {
   const [state, formAction, pending] = useActionState(completeOnboarding, initial);
@@ -20,7 +22,7 @@ export default function OnboardingPage() {
           <input
             name="full_name"
             required
-            className="input"
+            className={inputClass}
             placeholder="Jane Aviator"
           />
         </Field>
@@ -30,7 +32,7 @@ export default function OnboardingPage() {
             name="account_type"
             value={accountType}
             onChange={(e) => setAccountType(e.target.value as "individual" | "business")}
-            className="input"
+            className={inputClass}
           >
             <option value="individual">Individual</option>
             <option value="business">Business</option>
@@ -39,12 +41,12 @@ export default function OnboardingPage() {
 
         {accountType === "business" && (
           <Field label="Company name">
-            <input name="company_name" className="input" placeholder="Acme Air LLC" />
+            <input name="company_name" className={inputClass} placeholder="Acme Air LLC" />
           </Field>
         )}
 
         <Field label="Home base airport (optional)">
-          <input name="home_base" className="input" placeholder="KJFK" maxLength={4} />
+          <input name="home_base" className={inputClass} placeholder="KJFK" maxLength={4} />
         </Field>
 
         <fieldset className="space-y-3 rounded-lg border border-slate-800 p-4">
@@ -74,18 +76,6 @@ export default function OnboardingPage() {
           {pending ? "Saving…" : "Finish setup"}
         </button>
       </form>
-
-      <style>{`
-        .input {
-          width: 100%;
-          border-radius: 0.5rem;
-          border: 1px solid rgb(51 65 85);
-          background: #1a2436;
-          padding: 0.75rem 1rem;
-          outline: none;
-        }
-        .input:focus { border-color: #c9a24b; }
-      `}</style>
     </main>
   );
 }
