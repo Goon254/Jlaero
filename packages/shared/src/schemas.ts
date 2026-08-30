@@ -36,6 +36,15 @@ export const aircraftSchema = z.object({
   hourly_rate: z.number().nonnegative().optional(),
   currency: z.string().length(3).default("USD"),
   instant_book: z.boolean().default(false),
+  daily_minimum_hours: z.number().nonnegative().max(24).optional(),
+  overnight_crew_fee: z.number().nonnegative().optional(),
+  positioning_included: z.boolean().default(true),
+  range_nm: z.number().int().positive().max(20000).optional(),
+  min_runway_ft: z.number().int().positive().max(20000).optional(),
+  argus_rating: z.string().max(20).optional(),
+  wyvern_rating: z.string().max(20).optional(),
+  is_bao_stage: z.string().max(20).optional(),
+  cancellation_tier: z.enum(["flexible", "moderate", "strict"]).default("moderate"),
 });
 export type AircraftInput = z.infer<typeof aircraftSchema>;
 

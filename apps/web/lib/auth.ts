@@ -46,3 +46,10 @@ export async function requireUser(): Promise<CurrentUser> {
   if (!user) redirect("/login");
   return user;
 }
+
+// Requires a signed-in user holding the given role.
+export async function requireRole(role: AppRole): Promise<CurrentUser> {
+  const user = await requireUser();
+  if (!user.roles.includes(role)) redirect("/onboarding");
+  return user;
+}
