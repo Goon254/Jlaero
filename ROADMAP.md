@@ -21,6 +21,7 @@ Status legend: [x] done, [~] in progress, [ ] not started
 | P6 | `/marketplace` | Aircraft for sale | Filter by make, model, year, price; sale listing cards |
 | P7 | `/marketplace/[id]` | Sale listing detail | Gallery, specs, price, location, seller card, inquiry form |
 | P8 | `/login` | Sign in / sign up | [x] done |
+| P8b | `/forgot-password` + `/reset-password` | Password reset | Request reset email, set new password. Required before launch |
 | P9 | `/list` | "List with Jlaero" | Pitch page for owners and crew, CTA into signup/onboarding |
 | P10 | `/about` | About | Company story, contact info |
 | P11 | `/terms` | Terms of Service | Required for app store approval |
@@ -40,6 +41,7 @@ Status legend: [x] done, [~] in progress, [ ] not started
 | A7 | `/settings` | Profile settings | Name, avatar upload, phone, company, password change |
 | A8 | `/settings/verification` | Verification | Upload ID / operator certificate / license / insurance, see status per doc |
 | A9 | `/settings/payments` | Payments | Saved payment status, Stripe Connect onboarding state (for providers), payout account |
+| A10 | `/settings/delete-account` | Account deletion | REQUIRED by both App Store and Play Store. Anonymizes the user (bookings/reviews of the other party must survive), signs out, disables login |
 
 ### 1.3 Owner pages (role: owner)
 
@@ -94,9 +96,10 @@ management (photo-rich forms, admin) stays web-first for v1.
 | M9 | Messages inbox | Unread badges |
 | M10 | Conversation | Realtime chat + push notifications |
 | M11 | Requests inbox (providers) | Accept / quote / decline |
-| M12 | Account | Profile, roles, verification status, settings, sign out |
+| M12 | Account | Profile, roles, verification status, settings, sign out, account deletion (store requirement) |
 | M13 | Verification upload | Camera/photo picker for docs |
-| M14 | Push notification handling | Booking updates + new messages |
+| M14 | Push notification handling | Booking updates + new messages; deep links open the right booking/conversation screen |
+| M15 | Password reset | Request reset from sign-in screen |
 
 ---
 
@@ -108,10 +111,10 @@ management (photo-rich forms, admin) stays web-first for v1.
 | S2 | Conversations auto-create per booking | On first message or on request creation [ ] |
 | S3 | Realtime messaging | Supabase Realtime channel per conversation [ ] |
 | S4 | Photo upload pipeline | Client upload to storage buckets, position ordering, image resize (Next/Image + Supabase transforms) [ ] |
-| S5 | Stripe Connect | Provider onboarding (Express), destination charges with application fee (10%), webhooks (payment succeeded/failed/refund), payout records [ ] |
+| S5 | Stripe Connect | Provider onboarding (Express). Money flow: SEPARATE charges and transfers, NOT destination charges: charge buyer at acceptance, funds sit on platform balance, transfer to provider minus 10% fee on completion. Webhooks: payment succeeded/failed, refund, dispute/chargeback. High-ticket note: cards often fail above ~$10k; ACH/bank transfer is the follow-up (open decision) [ ] |
 | S6 | Email notifications | Booking events + new message digests (Resend or SMTP via Supabase) [ ] |
 | S7 | Push notifications | Expo push tokens table + send on booking/message events [ ] |
-| S8 | Search/filters | Postgres queries with indexes; airport code normalization [ ] |
+| S8 | Search/filters (v1 definition) | Charter: filter by origin (aircraft home_base exact match OR within N km using airport coordinates), date range vs availability, seats, category, price. No multi-leg routing. Crew: role, home base, rate. Sales: make/model/year/price. Postgres only, no external search service [ ] |
 | S9 | Admin role and tooling | Grant admin to your account via SQL, admin route guard [ ] |
 | S10 | Generated DB types | Replace placeholder database.types.ts [ ] |
 | S11 | Tests | Booking state machine unit tests, RLS policy tests (critical paths), booking flow integration test [ ] |
@@ -119,6 +122,61 @@ management (photo-rich forms, admin) stays web-first for v1.
 | S13 | Seed script | Demo aircraft/crew/sale data for dev [ ] |
 | S14 | Analytics | PostHog (web + mobile) or Vercel Analytics [ ] |
 | S15 | Error tracking | Sentry (web + mobile) [ ] |
+| S16 | Airports reference table | Import open airports dataset (OurAirports): code, name, coordinates, timezone. Powers autocomplete, near-me search, distance-based instant pricing, and airport-local time display [ ] |
+| S17 | Account deletion + anonymization | Edge function: strip PII from profile, keep bookings/reviews rows for the other party (no cascade delete of shared history), delete auth user. Store-compliance item [ ] |
+| S18 | Prod/dev environment split | Second Supabase project for production before launch; current project becomes dev. Env-per-environment on Vercel and EAS [ ] |
+
+---
+
+## 3b. Booking rules and edge cases (decided now, implemented in phases)
+
+- **Availability semantics:** an aircraft/crew is available unless a blocked
+  range or an accepted/paid booking covers the dates. Owners block, not open.
+- **Double-booking prevention:** a Postgres exclusion constraint on
+  accepted/paid charter bookings (aircraft_id + date range) so two bookings can
+  never both be accepted for overlapping dates; friendly conflict check in the
+  UI before that error can surface. Same for crew.
+- **provider_id integrity:** booking creation happens server-side; the server
+  derives provider_id from the aircraft/crew profile. Never trusted from the
+  client (RLS alone does not prevent a buyer naming an arbitrary provider).
+- **Quote expiry:** quotes carry expires_at (default 72h); expired quotes fall
+  back to `requested` and the buyer is notified.
+- **Cancellation policy (v1):** before acceptance: free, either side. After
+  acceptance, before payment: free, either side, with notification. After
+  payment: buyer cancellation refunds per a simple schedule (>7 days: 100%,
+  7 days to 48h: 50%, <48h: no refund); provider cancellation always refunds
+  100% and flags the provider for admin review. Exact percentages are an open
+  decision; the mechanism is not.
+- **Timezones:** store timestamptz; display in the AIRPORT's local time
+  (aviation convention) using the airports table timezone.
+- **Trip shape (v1):** one-way or round trip on one aircraft. No multi-leg.
+- **Crew bookings:** reuse the same table; origin = work location, destination
+  null, depart_at/return_at = engagement period, passengers null.
+- **Instant book (definition):** owner opt-in per listing. Price is computed:
+  great-circle distance between airports / cruise speed for the aircraft
+  category x hourly rate, + owner-set minimum charge. Buyer pays immediately;
+  booking jumps to `paid`. Ships in Phase 4 (needs payments), request/quote is
+  the only flow before then.
+- **Sale listings:** inquiry-only in v1. No escrow, no in-app purchase of
+  aircraft.
+
+## 3c. Regulatory and trust requirements (not optional for real launch)
+
+- **US charter legality:** selling charter flights requires the operator to
+  hold an FAA Part 135 certificate. Private (Part 91) owners cannot legally
+  sell charter to the public. Before public launch (Phase 8), publishing a
+  charter listing as ACTIVE requires an approved operator certificate in the
+  verification queue. During development phases, unverified listings are
+  allowed in the dev environment only.
+- **Pilot verification:** crew profiles show a "verified" badge only after
+  license review; unverified crew can exist but are labeled.
+- **Platform positioning:** terms of service must state Jlaero is a
+  marketplace/technology platform, not an air carrier or operator; the
+  operator is the carrier of record. Get a lawyer's pass on P11 before launch.
+- **Insurance:** operators upload proof of insurance as part of verification.
+- **Disintermediation:** users will try to close deals off-platform to avoid
+  the 10% fee. v1 accepts this risk; do not build detection yet, but keep
+  contact-info exchange out of listing pages (chat only, post-request).
 
 ---
 
@@ -128,24 +186,29 @@ management (photo-rich forms, admin) stays web-first for v1.
 Monorepo, schema + RLS (hardened), auth, onboarding, dashboard, landing.
 
 ### Phase 1: Charter supply (owners can list)
-Pages: O1, O2, O3, O4, O5 + S4 (photo upload) + S13 (seed data)
+Pages: O1, O2, O3, O4, O5 + S4 (photo upload) + S13 (seed data) + S16 (airports
+table, powers home-base autocomplete now and search/pricing later)
 **Done when:** an owner can create an aircraft listing with photos and
 availability, publish it, and see it live.
 
 ### Phase 2: Charter demand (travelers can find and request)
-Pages: P2, P3 + S8 (search)
+Pages: P2, P3 + S8 (search per its v1 definition)
 **Done when:** a visitor can search, open an aircraft, and submit a booking
-request (or instant-book intent) that appears in the owner's requests.
+request that appears in the owner's requests. (Instant book comes in Phase 4.)
 
 ### Phase 3: Booking engine + messaging
-Pages: A3, A4, A5, A6, O6 + S1, S2, S3
+Pages: A3, A4, A5, A6, O6 + S1, S2, S3 + double-booking exclusion constraint
++ quote expiry + server-derived provider_id (see 3b)
 **Done when:** request -> quote -> negotiate in chat -> accept -> (pay pending)
-flows end to end between two real accounts.
+flows end to end between two real accounts, and overlapping accepted bookings
+are impossible.
 
 ### Phase 4: Payments
-Pages: A9, O9 + S5
-**Done when:** a buyer pays for an accepted booking, platform fee is taken,
-provider sees pending payout, webhook updates booking to paid; refund path works.
+Pages: A9, O9 + S5 (charges-and-transfers model) + instant book per 3b
++ cancellation/refund schedule + dispute webhooks
+**Done when:** a buyer pays for an accepted booking, funds are held on the
+platform, provider transfer fires on completion minus the 10% fee; refunds
+follow the cancellation schedule; instant book charges the computed price.
 
 ### Phase 5: Reviews + verification + settings
 Pages: A7, A8 + review UI on A4 + S9 + AD1, AD2 (minimum admin)
@@ -163,16 +226,24 @@ Pages: P6, P7, O7, O8 + inquiry -> conversation wiring
 a conversation.
 
 ### Phase 8: Web launch
-- Legal + marketing pages: P9, P10, P11, P12, P13
+- Legal + marketing pages: P9, P10, P11, P12, P13 (P11 terms reviewed per 3c)
+- Auth completeness: P8b password reset, A10 account deletion (S17)
+- Verification gating live: active charter listings require approved operator
+  certificate (3c); AD2 verification queue must be working
 - SEO: metadata, OG images, sitemap.xml, robots.txt
 - S6 email, S14 analytics, S15 error tracking, S11 tests, S12 CI
-- Deploy to Vercel (production project + env vars)
+- S18 environment split: create the PRODUCTION Supabase project; current one
+  becomes dev. Deploy to Vercel with prod env vars
 - Supabase production hygiene: re-enable email confirmation, custom SMTP,
   rotate DB password, enable point-in-time backups
 - Stripe live mode keys + live webhooks
-- Domain cutover: point jlaero.com DNS to Vercel (currently on old cPanel
-  host; keep old host until DNS settles, then cancel hosting)
-**Done when:** https://jlaero.com serves the new platform in production.
+- **Email cutover first:** support@jlaero.com currently lives on the old
+  cPanel host. Move mail (e.g. Google Workspace or Zoho) and update MX
+  records BEFORE the DNS cutover, or support email dies silently
+- Domain cutover: point jlaero.com DNS to Vercel (keep old host until DNS
+  settles, then cancel hosting)
+**Done when:** https://jlaero.com serves the new platform in production and
+support email still works.
 
 ### Phase 9: Mobile app
 - Scaffold `apps/mobile` (Expo + expo-router), share `@jlaero/shared`
@@ -192,7 +263,9 @@ Assets and compliance:
 - Store listings (title, subtitle, description, keywords)
 - Privacy policy URL (P12), App Privacy questionnaire (Apple), Data safety
   form (Google)
-- Sign-in test account for reviewers
+- In-app account deletion visible and working (hard rejection if missing)
+- Sign-in test account for reviewers, pre-seeded with a demo listing and a
+  booking in progress so reviewers can exercise the app
 
 Release train:
 - iOS: EAS Submit -> TestFlight beta -> fix feedback -> App Review -> release
@@ -210,7 +283,13 @@ Release train:
 - Stack: Next.js web, Expo mobile, Supabase backend, Stripe Connect payments
 - Cloud Supabase, no Docker; migrations via `supabase db push`
 - Platform fee: 10% (constant in `@jlaero/shared`, changeable)
-- Instant-book is per-listing opt-in; default flow is request -> quote
+- Instant-book is per-listing opt-in with computed pricing (3b); ships with
+  payments in Phase 4; default flow is request -> quote
+- Payments: separate charges and transfers (hold until completion), never
+  destination charges
+- Account deletion anonymizes; shared history (bookings, reviews) survives
+- Auth is email/password only in v1 (no social login, which also avoids the
+  Apple "Sign in with Apple" requirement)
 - Mobile v1 scope: booking + messaging + request handling; heavy listing
   management stays on web
 - No em dashes in code or docs
@@ -219,6 +298,22 @@ Release train:
 
 - Email provider for transactional mail (suggest Resend)
 - Analytics: PostHog vs Vercel Analytics (suggest PostHog, works on mobile too)
-- Instant-book payment timing: authorize at booking vs charge on acceptance
+- Cancellation refund schedule percentages (mechanism is locked in 3b)
+- ACH / bank transfer for high-ticket payments, and at what threshold
 - Currency support beyond USD at launch
 - Whether sale listings get escrow/payments later or stay inquiry-only
+- Search radius default for "near origin" matching
+
+## 7. Explicitly NOT in v1 (the cutline)
+
+Named so nobody wonders if we forgot them:
+
+- Empty-leg flight deals (big private-aviation feature; strong v2 candidate)
+- Multi-leg itineraries
+- Multi-currency, i18n
+- Chat attachments and voice
+- In-app notification center (push + email only)
+- Off-platform-deal (disintermediation) detection
+- Auction/bidding on charters
+- Loyalty/membership programs
+- iPad-optimized layouts
