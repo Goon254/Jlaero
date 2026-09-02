@@ -44,6 +44,9 @@ export default async function DashboardPage() {
         {isCrew && (
           <Card title="My crew profile" href="/crew/me" body="Manage availability and rates." />
         )}
+        {isCrew && (
+          <Card title="Hire requests" href="/crew/requests" body="Respond to incoming engagements." />
+        )}
       </section>
 
       {!isOwner && !isCrew && (

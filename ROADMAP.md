@@ -315,7 +315,7 @@ AD1-AD6.
 approves with an audit trail; completed bookings get two-way reviews;
 accounts can be deleted.
 
-### Phase 6: Crew marketplace
+### Phase 6: Crew marketplace  [x] DONE
 P4, P5, C1, C2, C3. Reuses engine, quotes (no FET), contracts optional.
 **Done when:** crew publishes, gets booked and paid through the same flow.
 

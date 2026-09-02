@@ -130,11 +130,13 @@ export default async function BookingDetail({
   return (
     <PageShell
       title={
-        legs.length > 1
-          ? `${legs[0]!.origin} ⇄ ${legs[0]!.destination}`
-          : `${legs[0]?.origin ?? ""} → ${legs[0]?.destination ?? ""}`
+        booking.kind === "crew"
+          ? `Crew engagement at ${legs[0]?.origin ?? ""}`
+          : legs.length > 1
+            ? `${legs[0]!.origin} ⇄ ${legs[0]!.destination}`
+            : `${legs[0]?.origin ?? ""} → ${legs[0]?.destination ?? ""}`
       }
-      subtitle={`${aircraft?.name ?? ""} · with ${counterparty ?? ""}`}
+      subtitle={`${aircraft?.name ?? (booking.kind === "crew" ? "Crew hire" : "")} · with ${counterparty ?? ""}`}
     >
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         {terminal ? (
@@ -169,10 +171,12 @@ export default async function BookingDetail({
           <section className="rounded-2xl border border-slate-800 bg-ink-soft p-5">
             <h2 className="font-semibold">Itinerary</h2>
             <ul className="mt-3 space-y-2 text-sm">
-              {legs.map((l) => (
+              {legs.map((l, i) => (
                 <li key={l.id} className="flex items-center justify-between">
                   <span>
-                    {l.origin} → {l.destination}
+                    {booking.kind === "crew"
+                      ? `${i === 0 ? "Starts" : "Ends"} at ${l.origin}`
+                      : `${l.origin} → ${l.destination}`}
                   </span>
                   <span className="text-slate-400">
                     {l.depart_at
