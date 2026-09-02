@@ -79,8 +79,22 @@ export default function Home() {
         ))}
       </section>
 
-      <footer className="border-t border-slate-800 px-6 py-8 text-sm text-slate-500 md:px-12">
-        © {new Date().getFullYear()} Jlaero. Private aviation marketplace.
+      <footer className="border-t border-slate-800 px-6 py-8 md:px-12">
+        <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-slate-500">
+          <span>© {new Date().getFullYear()} Jlaero. Private aviation marketplace.</span>
+          <nav className="flex flex-wrap gap-5">
+            <Link href="/about" className="hover:text-gold">About</Link>
+            <Link href="/help" className="hover:text-gold">Help</Link>
+            <Link href="/contact" className="hover:text-gold">Contact</Link>
+            <Link href="/terms" className="hover:text-gold">Terms</Link>
+            <Link href="/privacy" className="hover:text-gold">Privacy</Link>
+          </nav>
+        </div>
+        <p className="mt-4 text-xs text-slate-600">
+          Jlaero is a technology marketplace, not an air carrier or direct air
+          carrier. All flights are operated by FAA-certificated air carriers
+          who exercise full operational control.
+        </p>
       </footer>
     </main>
   );

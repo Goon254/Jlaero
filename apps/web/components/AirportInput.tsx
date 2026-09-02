@@ -40,7 +40,7 @@ export function AirportInput({
         .from("airports")
         .select("icao, iata, name, municipality")
         .or(
-          `iata.ilike.${q},icao.ilike.${q}%,municipality.ilike.${q}%,name.ilike.%${q}%`
+          `iata.ilike.${q},icao.ilike.${q}%,ident.ilike.${q}%,municipality.ilike.${q}%,name.ilike.%${q}%`
         )
         .limit(8);
       setResults((data as Airport[]) ?? []);
