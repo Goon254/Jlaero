@@ -4,12 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+// Uploads into a public bucket under {userId}/{recordId}/ and inserts a row
+// into the photos table. Works for aircraft photos and sale-listing photos.
 export function PhotoUploader({
-  aircraftId,
+  recordId,
   nextPosition,
+  bucket = "aircraft-photos",
+  table = "aircraft_photos",
+  column = "aircraft_id",
 }: {
-  aircraftId: string;
+  recordId: string;
   nextPosition: number;
+  bucket?: string;
+  table?: string;
+  column?: string;
 }) {
   const supabase = createClient();
   const router = useRouter();
@@ -37,16 +45,16 @@ export function PhotoUploader({
         continue;
       }
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const path = `${user.id}/${aircraftId}/${crypto.randomUUID()}.${ext}`;
+      const path = `${user.id}/${recordId}/${crypto.randomUUID()}.${ext}`;
       const { error: upErr } = await supabase.storage
-        .from("aircraft-photos")
+        .from(bucket)
         .upload(path, file, { contentType: file.type });
       if (upErr) {
         setError(upErr.message);
         continue;
       }
-      const { error: dbErr } = await supabase.from("aircraft_photos").insert({
-        aircraft_id: aircraftId,
+      const { error: dbErr } = await supabase.from(table).insert({
+        [column]: recordId,
         file_path: path,
         position: position++,
       });

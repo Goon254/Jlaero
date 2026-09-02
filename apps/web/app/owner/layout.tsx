@@ -18,6 +18,9 @@ export default async function OwnerLayout({
           <Link href="/owner" className="hover:text-gold">Overview</Link>
           <Link href="/owner/aircraft" className="hover:text-gold">My aircraft</Link>
           <Link href="/owner/requests" className="hover:text-gold">Requests</Link>
+          <Link href="/owner/sales" className="hover:text-gold">Sales</Link>
+          <Link href="/owner/empty-legs" className="hover:text-gold">Empty legs</Link>
+          <Link href="/owner/earnings" className="hover:text-gold">Earnings</Link>
           <Link href="/owner/documents" className="hover:text-gold">Documents</Link>
           <Link href="/dashboard" className="hover:text-gold">Dashboard</Link>
         </div>

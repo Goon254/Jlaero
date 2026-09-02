@@ -33,6 +33,8 @@ export default async function CharterSearch({
     >
       <SearchForm defaults={params} />
 
+      <EmptyLegs />
+
       {tripDistanceNm && (
         <p className="mt-4 text-sm text-slate-400">
           Trip distance: about {tripDistanceNm.toLocaleString()} nm. Aircraft
@@ -113,6 +115,29 @@ export default async function CharterSearch({
       </section>
     </PageShell>
   );
+}
+
+async function EmptyLegs() {
+  const { createClient } = await import("@/lib/supabase/server");
+  const { EmptyLegStrip } = await import("./EmptyLegStrip");
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("empty_legs")
+    .select("id, origin, destination, depart_at, price, seats, aircraft(name)")
+    .eq("status", "active")
+    .gte("depart_at", new Date().toISOString())
+    .order("depart_at")
+    .limit(6);
+  const legs = (data ?? []).map((l) => ({
+    id: l.id,
+    origin: l.origin,
+    destination: l.destination,
+    depart_at: l.depart_at,
+    price: Number(l.price),
+    seats: l.seats,
+    aircraftName: (l.aircraft as unknown as { name: string } | null)?.name ?? "",
+  }));
+  return <EmptyLegStrip legs={legs} />;
 }
 
 function Badge({ children, gold = false }: { children: React.ReactNode; gold?: boolean }) {

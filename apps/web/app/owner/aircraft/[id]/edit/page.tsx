@@ -50,7 +50,7 @@ export default async function EditAircraft({
       <section className="mt-8 rounded-2xl border border-slate-800 bg-ink-soft/50 p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-semibold">Photos</h2>
-          <PhotoUploader aircraftId={id} nextPosition={nextPosition} />
+          <PhotoUploader recordId={id} nextPosition={nextPosition} />
         </div>
         {!photos?.length ? (
           <p className="text-sm text-slate-500">

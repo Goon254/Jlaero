@@ -319,7 +319,7 @@ accounts can be deleted.
 P4, P5, C1, C2, C3. Reuses engine, quotes (no FET), contracts optional.
 **Done when:** crew publishes, gets booked and paid through the same flow.
 
-### Phase 7: Sales + empty legs
+### Phase 7: Sales + empty legs  [x] DONE
 P6, P7, O7 + inquiry -> conversation. Empty legs: empty_legs table, browse
 page + cards on P2, books via fixed-price request flow.
 **Done when:** a sale inquiry opens a conversation; an empty leg can be
