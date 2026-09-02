@@ -22,7 +22,7 @@ export default async function CrewBrowse({
   let query = supabase
     .from("crew_profiles")
     .select(
-      "id, headline, crew_kind, total_hours, day_rate, home_base, licenses, type_ratings, profiles:user_id(full_name, verification)"
+      "id, headline, crew_kind, total_hours, day_rate, home_base, licenses, type_ratings, profiles:user_id(full_name, verification, avatar_url)"
     )
     .eq("status", "active");
   if (params.kind) query = query.eq("crew_kind", params.kind);
@@ -81,6 +81,7 @@ export default async function CrewBrowse({
             const p = c.profiles as unknown as {
               full_name: string | null;
               verification: string;
+              avatar_url: string | null;
             } | null;
             return (
               <li key={c.id}>
@@ -89,16 +90,28 @@ export default async function CrewBrowse({
                   className="block rounded-2xl border border-slate-800 bg-ink-soft p-5 hover:border-gold"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold">
-                        {p?.full_name ?? "Crew member"}
-                        {p?.verification === "verified" && (
-                          <span className="ml-2 text-sm text-emerald-400">✓</span>
+                    <div className="flex items-center gap-4">
+                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full bg-slate-800">
+                        {p?.avatar_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-lg text-slate-500">
+                            {(p?.full_name ?? "?").slice(0, 1)}
+                          </div>
                         )}
-                      </p>
-                      <p className="text-sm text-gold">
-                        {KIND_LABELS[c.crew_kind] ?? c.crew_kind}
-                      </p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">
+                          {p?.full_name ?? "Crew member"}
+                          {p?.verification === "verified" && (
+                            <span className="ml-2 text-sm text-emerald-400">✓</span>
+                          )}
+                        </p>
+                        <p className="text-sm text-gold">
+                          {KIND_LABELS[c.crew_kind] ?? c.crew_kind}
+                        </p>
+                      </div>
                     </div>
                     {c.day_rate && (
                       <p className="shrink-0 text-right">

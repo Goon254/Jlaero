@@ -25,7 +25,7 @@ export default async function CrewDetail({
   const { data: crew } = await supabase
     .from("crew_profiles")
     .select(
-      "*, profiles:user_id(id, full_name, verification, created_at)"
+      "*, profiles:user_id(id, full_name, verification, created_at, avatar_url)"
     )
     .eq("id", id)
     .eq("status", "active")
@@ -37,6 +37,7 @@ export default async function CrewDetail({
     full_name: string | null;
     verification: string;
     created_at: string;
+    avatar_url: string | null;
   } | null;
 
   const { data: reviews } = await supabase
@@ -66,6 +67,16 @@ export default async function CrewDetail({
 
   return (
     <PageShell title={p?.full_name ?? "Crew member"}>
+      {p?.avatar_url && (
+        <div className="-mt-2 mb-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={p.avatar_url}
+            alt={p.full_name ?? ""}
+            className="h-24 w-24 rounded-full border-2 border-gold/40 object-cover"
+          />
+        </div>
+      )}
       <p className="-mt-6 text-slate-400">
         {KIND_LABELS[crew.crew_kind] ?? crew.crew_kind}
         {crew.home_base ? ` · Based ${crew.home_base}` : ""}
