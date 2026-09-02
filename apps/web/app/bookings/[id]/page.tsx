@@ -6,7 +6,9 @@ import { Chat, type ChatMessage } from "@/components/Chat";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ActionBar } from "./ActionBar";
+import { ContractPanel } from "./ContractPanel";
 import { ManifestEditor } from "./ManifestEditor";
+import { PayPanel } from "./PayPanel";
 import { QuotePanel, type QuoteView } from "./QuotePanel";
 
 const TIMELINE: BookingStatus[] = [
@@ -49,22 +51,47 @@ export default async function BookingDetail({
         : null;
   if (!role) notFound();
 
-  const [{ data: quotes }, { data: conversation }, { data: parties }] =
-    await Promise.all([
-      supabase
-        .from("quotes")
-        .select(
-          "id, version, status, total, currency, expires_at, notes, quote_line_items(kind, description, quantity, unit_amount, amount, position)"
-        )
-        .eq("booking_id", id)
-        .order("version", { ascending: false })
-        .limit(1),
-      supabase.from("conversations").select("id").eq("booking_id", id).maybeSingle(),
-      supabase
-        .from("profiles")
-        .select("id, full_name, company_name")
-        .in("id", [booking.buyer_id, booking.provider_id]),
-    ]);
+  const [
+    { data: quotes },
+    { data: conversation },
+    { data: parties },
+    { data: contract },
+    { data: payments },
+    { data: acceptedQuote },
+  ] = await Promise.all([
+    supabase
+      .from("quotes")
+      .select(
+        "id, version, status, total, currency, expires_at, notes, quote_line_items(kind, description, quantity, unit_amount, amount, position)"
+      )
+      .eq("booking_id", id)
+      .order("version", { ascending: false })
+      .limit(1),
+    supabase.from("conversations").select("id").eq("booking_id", id).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("id, full_name, company_name")
+      .in("id", [booking.buyer_id, booking.provider_id]),
+    supabase
+      .from("contracts")
+      .select("status, buyer_signer_name, buyer_signed_at")
+      .eq("booking_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("payments")
+      .select("amount, status")
+      .eq("booking_id", id),
+    supabase
+      .from("quotes")
+      .select("total")
+      .eq("booking_id", id)
+      .eq("status", "accepted")
+      .order("version", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   let messages: ChatMessage[] = [];
   if (conversation) {
@@ -168,6 +195,35 @@ export default async function BookingDetail({
             quote={(quotes?.[0] as QuoteView | undefined) ?? null}
             role={role}
             bookingStatus={status}
+          />
+
+          <ContractPanel
+            bookingId={id}
+            role={role}
+            bookingStatus={status}
+            contract={contract ?? null}
+            summary={{
+              route:
+                legs.length > 1
+                  ? `${legs[0]!.origin} ⇄ ${legs[0]!.destination}`
+                  : `${legs[0]?.origin ?? ""} → ${legs[0]?.destination ?? ""}`,
+              aircraftName: aircraft?.name ?? "the aircraft",
+              total: acceptedQuote
+                ? `$${Number(acceptedQuote.total).toLocaleString()}`
+                : "the quoted amount",
+              operator: names[booking.provider_id] ?? "the Operator",
+              traveler: names[booking.buyer_id] ?? "the Charterer",
+            }}
+          />
+
+          <PayPanel
+            bookingId={id}
+            role={role}
+            bookingStatus={status}
+            total={Number(acceptedQuote?.total ?? 0)}
+            capturedTotal={(payments ?? [])
+              .filter((p) => p.status === "captured")
+              .reduce((s, p) => s + Number(p.amount), 0)}
           />
 
           <ManifestEditor

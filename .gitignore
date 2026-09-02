@@ -38,3 +38,6 @@ web-build/
 # ---- Supabase ----
 supabase/.branches/
 supabase/.temp/
+
+# Vendored agent skills (reinstall: npx skills add https://docs.stripe.com)
+.agents/

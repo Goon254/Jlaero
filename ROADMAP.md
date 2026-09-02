@@ -299,7 +299,7 @@ exclusion constraint + holds/expiries.
 hold placed, all with chat, between two real accounts; overlapping
 acceptance impossible; expiries fire.
 
-### Phase 4: Contracts + payments
+### Phase 4: Contracts + payments  [~] core done (remaining: instant book flow, receipts/invoice PDFs, ACH dashboard enablement)
 S20 contracts step, then S5: deposit and/or full payment (card + ACH incl.
 async pending), refund engine per policy tiers, transfers on completion +
 hold window, dispute webhooks, receipts/invoices, O9, A9 + instant book per

@@ -241,6 +241,71 @@ export async function cancelBooking(bookingId: string): Promise<EngineState> {
   if (!canTransition(booking.status, "cancelled", actor)) {
     return { error: "Not allowed from this status" };
   }
+
+  // Refund engine for paid bookings: buyer cancellations follow the listing's
+  // cancellation tier; provider cancellations always refund 100%.
+  if (["deposit_paid", "paid_in_full"].includes(booking.status)) {
+    const [{ refundPercent }, { stripe }, { db }] = await Promise.all([
+      import("@jlaero/shared"),
+      import("@/lib/stripe"),
+      import("@/lib/db"),
+    ]);
+
+    let pct = 100;
+    if (actor === "buyer") {
+      const [{ data: aircraft }, { data: legs }] = await Promise.all([
+        booking.aircraft_id
+          ? supabase
+              .from("aircraft")
+              .select("cancellation_tier")
+              .eq("id", booking.aircraft_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+        supabase
+          .from("booking_legs")
+          .select("depart_at")
+          .eq("booking_id", bookingId)
+          .not("depart_at", "is", null)
+          .order("depart_at")
+          .limit(1),
+      ]);
+      const tier = (aircraft?.cancellation_tier ?? "moderate") as
+        | "flexible"
+        | "moderate"
+        | "strict";
+      const departAt = legs?.[0]?.depart_at;
+      const hoursBefore = departAt
+        ? Math.max(0, (new Date(departAt).getTime() - Date.now()) / 3600_000)
+        : 0;
+      pct = refundPercent(tier, hoursBefore);
+    }
+
+    if (pct > 0) {
+      const sql = db();
+      const captured = await sql`
+        select id, stripe_payment_intent, amount from payments
+        where booking_id = ${bookingId} and status = 'captured'
+      `;
+      for (const p of captured) {
+        const pi = p.stripe_payment_intent as string;
+        if (!pi?.startsWith("pi_")) continue;
+        const refundCents = Math.round(Number(p.amount) * (pct / 100) * 100);
+        if (refundCents <= 0) continue;
+        try {
+          await stripe().refunds.create({
+            payment_intent: pi,
+            amount: refundCents,
+            metadata: { booking_id: bookingId, refund_pct: String(pct) },
+          });
+        } catch (e) {
+          return {
+            error: `Refund failed: ${e instanceof Error ? e.message : "unknown"}`,
+          };
+        }
+      }
+    }
+  }
+
   const { error } = await supabase
     .from("bookings")
     .update({
