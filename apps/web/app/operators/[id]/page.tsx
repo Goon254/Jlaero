@@ -25,6 +25,16 @@ export default async function OperatorProfile({
     .eq("owner_id", id)
     .eq("status", "active");
 
+  const { data: reviews } = await supabase
+    .from("reviews")
+    .select("rating, comment, created_at")
+    .eq("reviewee_id", id)
+    .order("created_at", { ascending: false });
+  const avg =
+    reviews?.length
+      ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
+      : null;
+
   const name = profile.company_name || profile.full_name || "Operator";
 
   return (
@@ -34,7 +44,7 @@ export default async function OperatorProfile({
         profile.home_base ? ` · Based ${profile.home_base}` : ""
       }`}
     >
-      <p className="mb-8 text-sm">
+      <p className="mb-8 flex items-center gap-3 text-sm">
         {profile.verification === "verified" ? (
           <span className="rounded-full bg-emerald-900/60 px-3 py-1.5 text-emerald-300">
             ✓ Verified operator
@@ -42,6 +52,11 @@ export default async function OperatorProfile({
         ) : (
           <span className="rounded-full bg-slate-800 px-3 py-1.5 text-slate-400">
             Verification pending
+          </span>
+        )}
+        {avg !== null && (
+          <span className="rounded-full bg-gold/15 px-3 py-1.5 text-gold">
+            ★ {avg} · {reviews!.length} review{reviews!.length === 1 ? "" : "s"}
           </span>
         )}
       </p>

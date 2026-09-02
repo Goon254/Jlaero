@@ -10,6 +10,7 @@ import { PageShell } from "@/components/PageShell";
 import { createClient } from "@/lib/supabase/server";
 import { publicPhotoUrl } from "@/lib/storage";
 import { getCurrentUser } from "@/lib/auth";
+import { FavoriteReportBar } from "@/components/FavoriteReportBar";
 import { RequestForm } from "./RequestForm";
 
 const TIER_LABELS: Record<string, string> = {
@@ -37,6 +38,18 @@ export default async function AircraftDetail({
     .maybeSingle();
   if (!aircraft) notFound();
 
+  let isSaved = false;
+  if (user) {
+    const { data: fav } = await supabase
+      .from("favorites")
+      .select("target_id")
+      .eq("user_id", user.id)
+      .eq("target_type", "aircraft")
+      .eq("target_id", id)
+      .maybeSingle();
+    isSaved = Boolean(fav);
+  }
+
   const photos = [...(aircraft.aircraft_photos ?? [])].sort(
     (a, b) => a.position - b.position
   );
@@ -51,13 +64,21 @@ export default async function AircraftDetail({
 
   return (
     <PageShell title={aircraft.name}>
-      <p className="-mt-6 mb-8 text-slate-400">
+      <p className="-mt-6 text-slate-400">
         {[aircraft.manufacturer, aircraft.model].filter(Boolean).join(" ")}
         {aircraft.category
           ? ` · ${AIRCRAFT_CATEGORY_LABELS[aircraft.category as AircraftCategory] ?? ""}`
           : ""}
         {aircraft.home_base ? ` · Based ${aircraft.home_base}` : ""}
       </p>
+      <div className="mb-8">
+        <FavoriteReportBar
+          targetType="aircraft"
+          targetId={id}
+          meId={user?.id ?? null}
+          initiallySaved={isSaved}
+        />
+      </div>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         <div>

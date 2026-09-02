@@ -10,6 +10,7 @@ import { ContractPanel } from "./ContractPanel";
 import { ManifestEditor } from "./ManifestEditor";
 import { PayPanel } from "./PayPanel";
 import { QuotePanel, type QuoteView } from "./QuotePanel";
+import { ReviewPanel } from "./ReviewPanel";
 
 const TIMELINE: BookingStatus[] = [
   "requested",
@@ -92,6 +93,13 @@ export default async function BookingDetail({
       .limit(1)
       .maybeSingle(),
   ]);
+
+  const { data: myReview } = await supabase
+    .from("reviews")
+    .select("rating, comment")
+    .eq("booking_id", id)
+    .eq("reviewer_id", user.id)
+    .maybeSingle();
 
   let messages: ChatMessage[] = [];
   if (conversation) {
@@ -231,6 +239,16 @@ export default async function BookingDetail({
             passengers={booking.booking_passengers}
             editable={editableManifest}
           />
+
+          {status === "completed" && (
+            <ReviewPanel
+              bookingId={id}
+              meId={user.id}
+              revieweeId={role === "buyer" ? booking.provider_id : booking.buyer_id}
+              revieweeName={counterparty ?? "your counterpart"}
+              existing={myReview ?? null}
+            />
+          )}
         </div>
 
         <div>

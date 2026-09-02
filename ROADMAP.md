@@ -308,7 +308,7 @@ hold window, dispute webhooks, receipts/invoices, O9, A9 + instant book per
 completion -> provider transfer minus fee; refunds follow tiers; ACH pending
 states resolve via webhook; instant book works under the ceiling.
 
-### Phase 5: Reviews, verification, admin
+### Phase 5: Reviews, verification, admin  [x] DONE
 A7, A8, A10, A11, A12 + review UI + S9 (audit log), S17, S21, S22, S23 +
 AD1-AD6.
 **Done when:** docs upload/expire/re-verify with auto-suspension; admin
