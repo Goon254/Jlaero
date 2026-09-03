@@ -339,7 +339,7 @@ listed and booked at its fixed price.
 **Done when:** jlaero.com serves production with verified-only charter
 supply and support email intact.
 
-### Phase 9: Mobile app
+### Phase 9: Mobile app  [~] core screens built (remaining: push notifications, EAS builds, device polish)
 apps/mobile scaffold (Expo + expo-router + shared package), M1-M14, realtime,
 push, deep links, permissions priming, offline states, force-update gate,
 EAS profiles, Sentry.

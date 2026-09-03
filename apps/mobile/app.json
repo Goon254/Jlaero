@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Jlaero",
+    "slug": "jlaero",
+    "version": "0.1.0",
+    "scheme": "jlaero",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0b1220",
+    "ios": {
+      "bundleIdentifier": "com.jlaero.app",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.jlaero.app",
+      "edgeToEdgeEnabled": true
+    },
+    "splash": {
+      "backgroundColor": "#0b1220"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}
