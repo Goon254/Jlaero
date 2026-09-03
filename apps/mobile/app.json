@@ -12,11 +12,7 @@
       "supportsTablet": false
     },
     "android": {
-      "package": "com.jlaero.app",
-      "edgeToEdgeEnabled": true
-    },
-    "splash": {
-      "backgroundColor": "#0b1220"
+      "package": "com.jlaero.app"
     },
     "plugins": ["expo-router"],
     "experiments": {
