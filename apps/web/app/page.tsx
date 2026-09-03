@@ -3,17 +3,17 @@ import Link from "next/link";
 const MARKETS = [
   {
     title: "Charter a jet",
-    body: "Search available aircraft by route, date, and passengers. Book instantly or request a quote and negotiate in-app.",
+    body: "Tell us the trip; get service tiers with one final price. Our team sources the right aircraft from a global operator network.",
     href: "/charter",
   },
   {
-    title: "Hire pilots & crew",
-    body: "Find certified captains, first officers, and cabin crew. Verified licenses, ratings, and availability.",
-    href: "/crew",
+    title: "Aviation services",
+    body: "Hangars, FBO services, aircraft detailing, catering, ground transport. One request, one final price.",
+    href: "/services",
   },
   {
     title: "Buy & sell aircraft",
-    body: "Browse jets for sale or list your own. Reach qualified buyers and operators worldwide.",
+    body: "Browse jets for sale or sell your own. Reach qualified buyers and operators worldwide.",
     href: "/marketplace",
   },
 ];
@@ -27,7 +27,7 @@ export default function Home() {
         </span>
         <nav className="flex items-center gap-6 text-sm">
           <Link href="/charter" className="hover:text-gold">Charter</Link>
-          <Link href="/crew" className="hover:text-gold">Crew</Link>
+          <Link href="/services" className="hover:text-gold">Services</Link>
           <Link href="/marketplace" className="hover:text-gold">Marketplace</Link>
           <Link
             href="/login"

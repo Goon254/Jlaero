@@ -16,8 +16,7 @@ const onboardingSchema = z.object({
     .transform((s) => s.toUpperCase())
     .optional()
     .or(z.literal("").transform(() => undefined)),
-  wants_owner: z.boolean(),
-  wants_crew: z.boolean(),
+  account_kind: z.enum(["traveler", "operator"]),
 });
 
 export type OnboardingState = { error?: string };
@@ -31,8 +30,7 @@ export async function completeOnboarding(
     account_type: formData.get("account_type"),
     company_name: formData.get("company_name") || undefined,
     home_base: formData.get("home_base") || "",
-    wants_owner: formData.get("wants_owner") === "on",
-    wants_crew: formData.get("wants_crew") === "on",
+    account_kind: formData.get("account_kind"),
   });
 
   if (!parsed.success) {
@@ -45,7 +43,7 @@ export async function completeOnboarding(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not signed in" };
 
-  const { full_name, account_type, company_name, home_base, wants_owner, wants_crew } =
+  const { full_name, account_type, company_name, home_base, account_kind } =
     parsed.data;
 
   const { error: profileError } = await supabase
@@ -54,13 +52,15 @@ export async function completeOnboarding(
     .eq("id", user.id);
   if (profileError) return { error: profileError.message };
 
-  const roles: { user_id: string; role: string }[] = [];
-  if (wants_owner) roles.push({ user_id: user.id, role: "owner" });
-  if (wants_crew) roles.push({ user_id: user.id, role: "crew" });
-  if (roles.length > 0) {
+  // Two account kinds (per product direction): every account is a traveler;
+  // operators additionally get the owner role.
+  if (account_kind === "operator") {
     const { error: rolesError } = await supabase
       .from("user_roles")
-      .upsert(roles, { onConflict: "user_id,role", ignoreDuplicates: true });
+      .upsert([{ user_id: user.id, role: "owner" }], {
+        onConflict: "user_id,role",
+        ignoreDuplicates: true,
+      });
     if (rolesError) return { error: rolesError.message };
   }
 

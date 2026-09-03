@@ -12,6 +12,34 @@ Status legend: [x] done, [~] in progress, [ ] not started
 
 ---
 
+## DIRECTION UPDATE (2026-09-02, from leadership; details at this week's meeting)
+
+The model shifts from self-serve listings toward a BROKERAGE:
+
+- **Charter = 3 service tiers, one final price.** Travelers request a trip;
+  Jlaero's agents source aircraft (Aircharterguide + operator relationships)
+  and respond with tiered options, each a single all-in price. No public
+  aircraft browsing as the primary flow ("not a listing platform").
+- **Verticals:** Charter booking, Aircraft sales (buy/sell), and a NEW
+  Services vertical (hangars, FBO services, detailing). [x] Services request
+  form + admin queue shipped.
+- **Two account types** instead of multi-role: Traveler, and Owner/Operator.
+  [x] Onboarding updated.
+- **Crew marketplace: shelved** pending review. [x] Hidden from navigation;
+  code and data retained.
+- Booking modes, engine, and the rest of the data model stand.
+
+Open for the meeting: tier definitions (names, what each includes, pricing
+logic); fate of public charter browse (kill, keep as showcase, or gate);
+whether sale listings stay self-serve; agent tooling for sourcing (request
+queue -> attach 3 tier quotes); fee model under brokerage pricing; empty legs
+under the new model; operator self-serve surface area.
+
+---
+
+
+---
+
 ## 1. Web page inventory
 
 ### 1.1 Public (no login)

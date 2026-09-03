@@ -34,16 +34,13 @@ export default function ListWithUs() {
         <Link href="/owner/aircraft" className="rounded-full bg-gold px-6 py-3 font-medium text-ink hover:bg-gold-light">
           List an aircraft
         </Link>
-        <Link href="/crew/me" className="rounded-full border border-slate-700 px-6 py-3 hover:border-gold hover:text-gold">
-          Create a crew profile
-        </Link>
         <Link href="/owner/sales" className="rounded-full border border-slate-700 px-6 py-3 hover:border-gold hover:text-gold">
           Sell an aircraft
         </Link>
       </div>
       <p className="mt-4 text-xs text-slate-500">
-        New here? Signing up takes a minute; pick &quot;List aircraft&quot; or
-        &quot;Offer crew services&quot; during onboarding.
+        New here? Signing up takes a minute; choose the Owner / Operator
+        account during onboarding.
       </p>
     </PageShell>
   );

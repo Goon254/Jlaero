@@ -17,7 +17,7 @@ export function PageShell({
         </Link>
         <div className="flex gap-5">
           <Link href="/charter" className="hover:text-gold">Charter</Link>
-          <Link href="/crew" className="hover:text-gold">Crew</Link>
+          <Link href="/services" className="hover:text-gold">Services</Link>
           <Link href="/marketplace" className="hover:text-gold">Marketplace</Link>
           <Link href="/dashboard" className="hover:text-gold">Dashboard</Link>
         </div>

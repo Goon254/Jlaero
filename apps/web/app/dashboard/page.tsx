@@ -10,7 +10,6 @@ export default async function DashboardPage() {
   if (!user.profile?.full_name) redirect("/onboarding");
 
   const isOwner = user.roles.includes("owner");
-  const isCrew = user.roles.includes("crew");
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
@@ -34,26 +33,23 @@ export default async function DashboardPage() {
       </header>
 
       <section className="mt-10 grid gap-4 sm:grid-cols-2">
-        <Card title="Charter a jet" href="/charter" body="Search and book private jets." />
-        <Card title="Hire crew" href="/crew" body="Find pilots and cabin crew." />
+        <Card title="Charter a jet" href="/charter" body="Search and request private jets." />
+        <Card title="Aviation services" href="/services" body="Hangars, FBO services, detailing, and more." />
         <Card title="Aircraft for sale" href="/marketplace" body="Browse jets for sale." />
         <Card title="My bookings" href="/bookings" body="Track your requests and trips." />
         {isOwner && (
-          <Card title="My aircraft" href="/owner/aircraft" body="Manage your charter & sale listings." />
+          <Card title="My aircraft" href="/owner/aircraft" body="Manage your fleet and sale listings." />
         )}
-        {isCrew && (
-          <Card title="My crew profile" href="/crew/me" body="Manage availability and rates." />
-        )}
-        {isCrew && (
-          <Card title="Hire requests" href="/crew/requests" body="Respond to incoming engagements." />
+        {isOwner && (
+          <Card title="Booking requests" href="/owner/requests" body="Respond to incoming charters." />
         )}
       </section>
 
-      {!isOwner && !isCrew && (
+      {!isOwner && (
         <p className="mt-8 text-sm text-slate-400">
-          Want to list an aircraft or offer crew services?{" "}
+          Operate aircraft?{" "}
           <Link href="/onboarding" className="text-gold">
-            Update your account
+            Switch to an operator account
           </Link>
           .
         </p>
