@@ -1,10 +1,11 @@
 import { useCallback, useState } from "react";
-import { FlatList, Pressable, RefreshControl, Text, View } from "react-native";
+import { FlatList, RefreshControl, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useSession } from "@/lib/session";
-import { colors } from "@/lib/theme";
-import { card } from "@/lib/styles";
+import { initials, relativeTime } from "@/lib/format";
+import { radius, space, useTheme } from "@/lib/theme";
+import { Avatar, Card, EmptyState, Pressable, Screen, ScreenHeader, Skeleton, Text } from "@/components/ui";
 
 type Row = {
   conversation_id: string;
@@ -19,9 +20,12 @@ type Row = {
   };
 };
 
+type Item = Row & { last?: string; lastAt?: string; unread: number };
+
 export default function Messages() {
   const { session } = useSession();
-  const [rows, setRows] = useState<(Row & { last?: string; unread: number })[]>([]);
+  const { colors } = useTheme();
+  const [rows, setRows] = useState<Item[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
@@ -57,13 +61,10 @@ export default function Messages() {
         .map((r) => ({
           ...r,
           last: lastByConv.get(r.conversation_id)?.body,
+          lastAt: lastByConv.get(r.conversation_id)?.created_at,
           unread: unread.get(r.conversation_id) ?? 0,
         }))
-        .sort((a, b) => {
-          const la = lastByConv.get(a.conversation_id)?.created_at ?? "";
-          const lb = lastByConv.get(b.conversation_id)?.created_at ?? "";
-          return lb.localeCompare(la);
-        })
+        .sort((a, b) => (b.lastAt ?? "").localeCompare(a.lastAt ?? ""))
     );
     setRefreshing(false);
   }, [session]);
@@ -75,54 +76,92 @@ export default function Messages() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.ink }}>
+    <Screen>
       <FlatList
-        data={rows}
+        data={rows ?? []}
         keyExtractor={(r) => r.conversation_id}
-        contentContainerStyle={{ padding: 16, gap: 10 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} tintColor={colors.gold} />}
-        ListEmptyComponent={
-          <Text style={{ color: colors.textFaint, textAlign: "center", marginTop: 60 }}>
-            Conversations start when a booking request is made.
-          </Text>
+        contentContainerStyle={{ paddingHorizontal: space.xl, paddingBottom: space.xxxl }}
+        ListHeaderComponent={<ScreenHeader eyebrow="Inbox" title="Messages" />}
+        ListHeaderComponentStyle={{ marginHorizontal: -space.xl }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing && rows !== null} onRefresh={load} tintColor={colors.accent} />
         }
+        ListEmptyComponent={
+          rows === null ? (
+            <View style={{ gap: space.md }}>
+              {[0, 1, 2].map((i) => (
+                <Card key={i} style={{ flexDirection: "row", gap: space.md, alignItems: "center" }}>
+                  <Skeleton width={44} height={44} round={radius.full} />
+                  <View style={{ flex: 1, gap: space.sm }}>
+                    <Skeleton width="60%" height={16} />
+                    <Skeleton width="85%" height={13} />
+                  </View>
+                </Card>
+              ))}
+            </View>
+          ) : (
+            <EmptyState
+              icon="chatbubble-ellipses-outline"
+              title="Your inbox is quiet"
+              body="Conversations open automatically when you request a quote."
+            />
+          )
+        }
+        ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: colors.border, marginLeft: 60 }} />}
         renderItem={({ item }) => {
           const c = item.conversations;
           const legs = [...(c.bookings?.booking_legs ?? [])].sort((a, b) => a.position - b.position);
-          const title = legs.length
-            ? `${legs[0]!.origin} → ${legs[legs.length - 1]!.destination ?? legs[0]!.destination ?? ""}`
+          const route = legs.length
+            ? `${legs[0]!.origin} to ${legs[legs.length - 1]!.destination ?? legs[0]!.destination ?? ""}`
             : "Conversation";
+          const name = c.bookings?.aircraft?.name ?? route;
+          const hasUnread = item.unread > 0;
           return (
             <Pressable
-              onPress={() =>
-                c.booking_id
-                  ? router.push(`/booking/${c.booking_id}`)
-                  : router.push(`/conversation/${c.id}`)
-              }
-              style={card}
+              onPress={() => (c.booking_id ? router.push(`/booking/${c.booking_id}`) : router.push(`/conversation/${c.id}`))}
+              haptic="light"
+              pressScale={1}
+              pressOpacity={0.6}
+              accessibilityRole="button"
+              accessibilityLabel={`${name}, ${route}${hasUnread ? `, ${item.unread} unread` : ""}`}
+              style={{ flexDirection: "row", alignItems: "center", gap: space.md, paddingVertical: space.lg }}
             >
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                <View style={{ flex: 1, marginRight: 8 }}>
-                  <Text style={{ color: colors.text, fontWeight: "700" }} numberOfLines={1}>
-                    {title}
-                    {c.bookings?.aircraft?.name ? `  ·  ${c.bookings.aircraft.name}` : ""}
+              <Avatar label={initials(c.bookings?.aircraft?.name, "J")} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
+                  <Text variant={hasUnread ? "bodyStrong" : "body"} numberOfLines={1} style={{ flex: 1 }}>
+                    {name}
                   </Text>
-                  <Text style={{ color: colors.textDim, fontSize: 13, marginTop: 2 }} numberOfLines={1}>
-                    {item.last ?? "No messages yet"}
+                  <Text variant="caption" tone="tertiary">
+                    {relativeTime(item.lastAt)}
                   </Text>
                 </View>
-                {item.unread > 0 && (
-                  <View style={{ backgroundColor: colors.gold, borderRadius: 999, minWidth: 22, paddingHorizontal: 6, paddingVertical: 2 }}>
-                    <Text style={{ color: colors.ink, fontWeight: "700", textAlign: "center", fontSize: 12 }}>
-                      {item.unread}
-                    </Text>
-                  </View>
-                )}
+                <Text variant="caption" tone={hasUnread ? "primary" : "secondary"} numberOfLines={1}>
+                  {c.bookings?.aircraft?.name ? `${route}  ·  ` : ""}
+                  {item.last ?? "No messages yet"}
+                </Text>
               </View>
+              {hasUnread && (
+                <View
+                  style={{
+                    minWidth: 22,
+                    height: 22,
+                    paddingHorizontal: 6,
+                    borderRadius: radius.full,
+                    backgroundColor: colors.accent,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text variant="captionStrong" style={{ color: colors.onAccent, fontSize: 12 }}>
+                    {item.unread}
+                  </Text>
+                </View>
+              )}
             </Pressable>
           );
         }}
       />
-    </View>
+    </Screen>
   );
 }

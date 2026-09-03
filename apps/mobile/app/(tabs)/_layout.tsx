@@ -1,57 +1,56 @@
 import { Redirect, Tabs } from "expo-router";
-import { Text } from "react-native";
+import { Platform, type ColorValue } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSession } from "@/lib/session";
-import { colors } from "@/lib/theme";
+import { fonts, useTheme } from "@/lib/theme";
+import { Screen } from "@/components/ui";
 
-function Icon({ glyph, focused }: { glyph: string; focused: boolean }) {
-  return (
-    <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.5 }}>{glyph}</Text>
+type Glyph = React.ComponentProps<typeof Ionicons>["name"];
+
+function tabIcon(outline: Glyph, filled: Glyph) {
+  return ({ focused, color }: { focused: boolean; color: ColorValue }) => (
+    <Ionicons name={focused ? filled : outline} size={24} color={color} />
   );
 }
 
 export default function TabsLayout() {
   const { session, loading } = useSession();
-  if (loading) return null;
+  const { colors } = useTheme();
+  if (loading) return <Screen />;
   if (!session) return <Redirect href="/login" />;
 
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: colors.ink },
-        headerTintColor: colors.text,
-        tabBarStyle: { backgroundColor: colors.ink, borderTopColor: colors.border },
-        tabBarActiveTintColor: colors.gold,
-        tabBarInactiveTintColor: colors.textFaint,
-        sceneStyle: { backgroundColor: colors.ink },
+        headerShown: false,
+        sceneStyle: { backgroundColor: colors.bg },
+        tabBarStyle: {
+          backgroundColor: colors.tabBar,
+          borderTopColor: colors.border,
+          borderTopWidth: 1,
+          height: Platform.OS === "ios" ? 84 : 68,
+          paddingTop: 6,
+        },
+        tabBarLabelStyle: { fontFamily: fonts.sansMedium, fontSize: 11, marginTop: 2 },
+        tabBarActiveTintColor: colors.accentText,
+        tabBarInactiveTintColor: colors.textTertiary,
       }}
     >
       <Tabs.Screen
         name="index"
-        options={{
-          title: "Explore",
-          tabBarIcon: ({ focused }) => <Icon glyph="✈️" focused={focused} />,
-        }}
+        options={{ title: "Explore", tabBarIcon: tabIcon("compass-outline", "compass") }}
       />
       <Tabs.Screen
         name="bookings"
-        options={{
-          title: "Bookings",
-          tabBarIcon: ({ focused }) => <Icon glyph="🧾" focused={focused} />,
-        }}
+        options={{ title: "Trips", tabBarIcon: tabIcon("airplane-outline", "airplane") }}
       />
       <Tabs.Screen
         name="messages"
-        options={{
-          title: "Messages",
-          tabBarIcon: ({ focused }) => <Icon glyph="💬" focused={focused} />,
-        }}
+        options={{ title: "Messages", tabBarIcon: tabIcon("chatbubbles-outline", "chatbubbles") }}
       />
       <Tabs.Screen
         name="account"
-        options={{
-          title: "Account",
-          tabBarIcon: ({ focused }) => <Icon glyph="👤" focused={focused} />,
-        }}
+        options={{ title: "Account", tabBarIcon: tabIcon("person-outline", "person") }}
       />
     </Tabs>
   );

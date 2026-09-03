@@ -5,7 +5,7 @@
     "version": "0.1.0",
     "scheme": "jlaero",
     "orientation": "portrait",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#0b1220",
     "ios": {
       "bundleIdentifier": "com.jlaero.app",
@@ -14,7 +14,20 @@
     "android": {
       "package": "com.jlaero.app"
     },
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-image",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#f6f4ee",
+          "dark": {
+            "backgroundColor": "#0b1220"
+          }
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": false
     }

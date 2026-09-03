@@ -1,19 +1,14 @@
 import { useCallback, useState } from "react";
-import {
-  Alert,
-  Linking,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { Alert, Linking, ScrollView, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useSession } from "@/lib/session";
 import { acceptQuote, cancelBooking } from "@/lib/booking";
 import { WEB_BASE_URL } from "@/lib/config";
-import { colors, statusColors } from "@/lib/theme";
-import { button, buttonText, card } from "@/lib/styles";
+import { dateTime, money } from "@/lib/format";
+import { fonts, radius, space, useTheme } from "@/lib/theme";
+import { Button, Card, Icon, Pill, Screen, SectionTitle, Skeleton, StatusPill, Text } from "@/components/ui";
 import { Chat } from "@/components/Chat";
 
 type Booking = {
@@ -22,8 +17,16 @@ type Booking = {
   status: string;
   buyer_id: string;
   provider_id: string;
+  currency: string | null;
   aircraft: { name: string } | null;
-  booking_legs: { id: string; position: number; origin: string; destination: string | null; depart_at: string | null; passengers: number | null }[];
+  booking_legs: {
+    id: string;
+    position: number;
+    origin: string;
+    destination: string | null;
+    depart_at: string | null;
+    passengers: number | null;
+  }[];
 };
 
 type Quote = {
@@ -36,9 +39,63 @@ type Quote = {
   quote_line_items: { kind: string; description: string | null; amount: number; position: number }[];
 };
 
+function Leg({
+  origin,
+  destination,
+  when,
+  pax,
+  last,
+  crew,
+  index,
+}: {
+  origin: string;
+  destination: string | null;
+  when: string | null;
+  pax: number | null;
+  last: boolean;
+  crew: boolean;
+  index: number;
+}) {
+  const { colors } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", gap: space.md }}>
+      <View style={{ alignItems: "center", width: 16 }}>
+        <View
+          style={{
+            width: 10,
+            height: 10,
+            borderRadius: 5,
+            backgroundColor: colors.accent,
+            marginTop: 6,
+          }}
+        />
+        {!last && <View style={{ flex: 1, width: 1, backgroundColor: colors.borderStrong, marginVertical: 4 }} />}
+      </View>
+      <View style={{ flex: 1, paddingBottom: last ? 0 : space.lg }}>
+        {crew ? (
+          <Text variant="bodyStrong">
+            {index === 0 ? "Starts" : "Ends"} at {origin}
+          </Text>
+        ) : (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
+            <Text variant="bodyStrong">{origin}</Text>
+            <Icon name="arrow-forward" size={14} color={colors.accentText} />
+            <Text variant="bodyStrong">{destination ?? ""}</Text>
+          </View>
+        )}
+        <Text variant="caption" tone="secondary" style={{ marginTop: 2 }}>
+          {[when ? `${dateTime(when)} UTC` : null, pax ? `${pax} guests` : null].filter(Boolean).join("  ·  ")}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 export default function BookingDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useSession();
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [booking, setBooking] = useState<Booking | null>(null);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -49,7 +106,7 @@ export default function BookingDetail() {
       supabase
         .from("bookings")
         .select(
-          "id, kind, status, buyer_id, provider_id, aircraft(name), booking_legs(id, position, origin, destination, depart_at, passengers)"
+          "id, kind, status, buyer_id, provider_id, currency, aircraft(name), booking_legs(id, position, origin, destination, depart_at, passengers)"
         )
         .eq("id", id)
         .maybeSingle(),
@@ -74,23 +131,29 @@ export default function BookingDetail() {
 
   if (!booking || !session) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.ink, justifyContent: "center" }}>
-        <Text style={{ color: colors.textFaint, textAlign: "center" }}>Loading…</Text>
-      </View>
+      <Screen style={{ padding: space.xl, gap: space.lg }}>
+        <Skeleton width="65%" height={30} />
+        <Card>
+          <Skeleton width="50%" height={16} />
+          <Skeleton width="80%" height={13} style={{ marginTop: space.sm }} />
+        </Card>
+        <Card>
+          <Skeleton width="40%" height={16} />
+          <Skeleton width="100%" height={13} style={{ marginTop: space.sm }} />
+          <Skeleton width="100%" height={13} style={{ marginTop: space.sm }} />
+        </Card>
+      </Screen>
     );
   }
 
   const meId = session.user.id;
   const role = booking.buyer_id === meId ? "buyer" : "provider";
   const legs = [...booking.booking_legs].sort((a, b) => a.position - b.position);
-  const canAccept =
-    role === "buyer" &&
-    quote?.status === "sent" &&
-    ["quoted", "negotiating"].includes(booking.status);
+  const currency = booking.currency ?? "USD";
+  const canAccept = role === "buyer" && quote?.status === "sent" && ["quoted", "negotiating"].includes(booking.status);
   const webStep = ["accepted", "contract_signed", "deposit_paid"].includes(booking.status);
-  const canCancel = [
-    "requested", "quoted", "negotiating", "accepted", "contract_signed",
-  ].includes(booking.status);
+  const canCancel = ["requested", "quoted", "negotiating", "accepted", "contract_signed"].includes(booking.status);
+  const title = booking.aircraft?.name ?? (booking.kind === "crew" ? "Crew engagement" : "Charter");
 
   async function onAccept() {
     setBusy(true);
@@ -101,7 +164,7 @@ export default function BookingDetail() {
   }
 
   function onCancel() {
-    Alert.alert("Cancel booking?", "This cannot be undone.", [
+    Alert.alert("Cancel this booking?", "This cannot be undone.", [
       { text: "Keep it", style: "cancel" },
       {
         text: "Cancel booking",
@@ -116,95 +179,147 @@ export default function BookingDetail() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.ink }} contentContainerStyle={{ padding: 16, gap: 14 }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={{ color: colors.text, fontSize: 20, fontWeight: "700", flex: 1 }} numberOfLines={1}>
-          {booking.aircraft?.name ?? (booking.kind === "crew" ? "Crew engagement" : "Charter")}
-        </Text>
-        <Text style={{ color: statusColors[booking.status] ?? colors.textDim, fontWeight: "700", textTransform: "capitalize" }}>
-          {booking.status.replace(/_/g, " ")}
-        </Text>
-      </View>
-
-      <View style={card}>
-        <Text style={{ color: colors.text, fontWeight: "700", marginBottom: 6 }}>Itinerary</Text>
-        {legs.map((l, i) => (
-          <Text key={l.id} style={{ color: colors.textDim, marginTop: 2 }}>
-            {booking.kind === "crew"
-              ? `${i === 0 ? "Starts" : "Ends"} at ${l.origin}`
-              : `${l.origin} → ${l.destination}`}
-            {l.depart_at
-              ? ` · ${new Date(l.depart_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "UTC" })} UTC`
-              : ""}
-            {l.passengers ? ` · ${l.passengers} pax` : ""}
+    <Screen>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ padding: space.xl, paddingBottom: insets.bottom + space.xxxl, gap: space.xl }}
+      >
+        <View style={{ gap: space.sm }}>
+          <Text variant="label" tone="accent">
+            {booking.kind === "crew" ? "Crew" : "Charter"}
+            {role === "provider" ? "  ·  You are the operator" : ""}
           </Text>
-        ))}
-      </View>
-
-      {quote && (
-        <View style={card}>
-          <Text style={{ color: colors.text, fontWeight: "700" }}>
-            Quote v{quote.version} · {quote.status}
+          <Text variant="display" accessibilityRole="header">
+            {title}
           </Text>
-          {[...quote.quote_line_items]
-            .sort((a, b) => a.position - b.position)
-            .map((li, i) => (
-              <View key={i} style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 6 }}>
-                <Text style={{ color: colors.textDim, flex: 1, marginRight: 8 }} numberOfLines={1}>
-                  {li.description || li.kind.replace(/_/g, " ")}
-                </Text>
-                <Text style={{ color: colors.text }}>
-                  ${Math.abs(Number(li.amount)).toLocaleString()}
+          <View style={{ flexDirection: "row" }}>
+            <StatusPill status={booking.status} />
+          </View>
+        </View>
+
+        <View>
+          <SectionTitle title="Itinerary" />
+          <Card>
+            {legs.map((l, i) => (
+              <Leg
+                key={l.id}
+                index={i}
+                origin={l.origin}
+                destination={l.destination}
+                when={l.depart_at}
+                pax={l.passengers}
+                last={i === legs.length - 1}
+                crew={booking.kind === "crew"}
+              />
+            ))}
+          </Card>
+        </View>
+
+        {quote && (
+          <View>
+            <SectionTitle
+              title={`Quote v${quote.version}`}
+              action={<Pill label={quote.status} tone={quote.status === "sent" ? "info" : quote.status === "accepted" ? "success" : "neutral"} />}
+            />
+            <Card raised>
+              {[...quote.quote_line_items]
+                .sort((a, b) => a.position - b.position)
+                .map((li, i) => (
+                  <View
+                    key={i}
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      paddingVertical: space.sm,
+                      gap: space.md,
+                    }}
+                  >
+                    <Text variant="body" tone="secondary" style={{ flex: 1 }} numberOfLines={2}>
+                      {li.description || li.kind.replace(/_/g, " ")}
+                    </Text>
+                    <Text variant="body">
+                      {Number(li.amount) < 0 ? "- " : ""}
+                      {money(Math.abs(Number(li.amount)), currency)}
+                    </Text>
+                  </View>
+                ))}
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "baseline",
+                  marginTop: space.md,
+                  paddingTop: space.md,
+                  borderTopWidth: 1,
+                  borderTopColor: colors.borderStrong,
+                }}
+              >
+                <Text variant="subhead">Total</Text>
+                <Text style={{ fontFamily: fonts.display, fontSize: 24, lineHeight: 30, color: colors.text }}>
+                  {money(quote.total, currency)}
                 </Text>
               </View>
-            ))}
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8 }}>
-            <Text style={{ color: colors.text, fontWeight: "700" }}>Total</Text>
-            <Text style={{ color: colors.gold, fontWeight: "700", fontSize: 16 }}>
-              ${Number(quote.total).toLocaleString()}
-            </Text>
+              {quote.expires_at && quote.status === "sent" && (
+                <Text variant="caption" tone="tertiary" style={{ marginTop: space.xs }}>
+                  Valid until {dateTime(quote.expires_at)} UTC
+                </Text>
+              )}
+              {quote.notes ? (
+                <View
+                  style={{
+                    marginTop: space.md,
+                    padding: space.md,
+                    borderRadius: radius.sm,
+                    backgroundColor: colors.surfaceSunken,
+                  }}
+                >
+                  <Text variant="caption" tone="secondary">
+                    {quote.notes}
+                  </Text>
+                </View>
+              ) : null}
+              {canAccept && (
+                <Button
+                  title={`Accept quote  ·  ${money(quote.total, currency)}`}
+                  variant="success"
+                  icon="checkmark-circle"
+                  onPress={onAccept}
+                  loading={busy}
+                  size="lg"
+                  style={{ marginTop: space.lg }}
+                />
+              )}
+            </Card>
           </View>
-          {canAccept && (
-            <Pressable onPress={onAccept} disabled={busy} style={[button, { marginTop: 12, backgroundColor: colors.green, opacity: busy ? 0.6 : 1 }]}>
-              <Text style={[buttonText, { color: colors.ink }]}>
-                Accept quote · ${Number(quote.total).toLocaleString()}
-              </Text>
-            </Pressable>
-          )}
-        </View>
-      )}
+        )}
 
-      {webStep && role === "buyer" && (
-        <Pressable
-          onPress={() => Linking.openURL(`${WEB_BASE_URL}/bookings/${booking.id}`)}
-          style={button}
-        >
-          <Text style={buttonText}>
-            {booking.status === "accepted" ? "Sign agreement & pay on web" : "Continue payment on web"}
-          </Text>
-        </Pressable>
-      )}
-      {role === "provider" && ["requested", "quoted", "negotiating"].includes(booking.status) && (
-        <Pressable
-          onPress={() => Linking.openURL(`${WEB_BASE_URL}/bookings/${booking.id}`)}
-          style={button}
-        >
-          <Text style={buttonText}>Send / revise quote on web</Text>
-        </Pressable>
-      )}
+        {webStep && role === "buyer" && (
+          <Button
+            title={booking.status === "accepted" ? "Sign agreement and pay" : "Continue payment"}
+            iconRight="open-outline"
+            size="lg"
+            onPress={() => Linking.openURL(`${WEB_BASE_URL}/bookings/${booking.id}`)}
+          />
+        )}
+        {role === "provider" && ["requested", "quoted", "negotiating"].includes(booking.status) && (
+          <Button
+            title={quote ? "Revise quote" : "Send a quote"}
+            iconRight="open-outline"
+            size="lg"
+            onPress={() => Linking.openURL(`${WEB_BASE_URL}/bookings/${booking.id}`)}
+          />
+        )}
 
-      {conversationId && (
-        <View>
-          <Text style={{ color: colors.text, fontWeight: "700", marginBottom: 8 }}>Messages</Text>
-          <Chat conversationId={conversationId} meId={meId} />
-        </View>
-      )}
+        {conversationId && (
+          <View>
+            <SectionTitle title="Messages" />
+            <Chat conversationId={conversationId} meId={meId} style={{ height: 380 }} />
+          </View>
+        )}
 
-      {canCancel && (
-        <Pressable onPress={onCancel} style={{ alignItems: "center", paddingVertical: 10 }}>
-          <Text style={{ color: colors.red }}>Cancel booking</Text>
-        </Pressable>
-      )}
-    </ScrollView>
+        {canCancel && <Button title="Cancel booking" variant="danger" onPress={onCancel} />}
+      </ScrollView>
+    </Screen>
   );
 }
