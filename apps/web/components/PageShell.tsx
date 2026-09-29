@@ -16,6 +16,7 @@ export function PageShell({
           Jl<span className="text-gold">aero</span>
         </Link>
         <div className="flex gap-5">
+          <Link href="/request" className="hover:text-gold">Request a trip</Link>
           <Link href="/charter" className="hover:text-gold">Charter</Link>
           <Link href="/services" className="hover:text-gold">Services</Link>
           <Link href="/marketplace" className="hover:text-gold">Marketplace</Link>

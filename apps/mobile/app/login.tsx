@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Linking, Platform, ScrollView, View } from "react-native";
+import { Linking, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -45,8 +46,8 @@ export default function Login() {
         }
         style={{ position: "absolute", left: 0, right: 0, top: 0, height: 420 }}
       />
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <ScrollView
+        <KeyboardAwareScrollView
+          bottomOffset={24}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             flexGrow: 1,
@@ -154,8 +155,7 @@ export default function Login() {
             </Text>
             .
           </Text>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollView>
     </Screen>
   );
 }

@@ -33,7 +33,9 @@ export default async function DashboardPage() {
       </header>
 
       <section className="mt-10 grid gap-4 sm:grid-cols-2">
-        <Card title="Charter a jet" href="/charter" body="Search and request private jets." />
+        <Card title="Request a trip" href="/request" body="Tell us the route; we return three all-in options." />
+        <Card title="My trip requests" href="/requests" body="Options we found and trips in progress." />
+        <Card title="Charter a jet" href="/charter" body="Browse aircraft and empty legs." />
         <Card title="Aviation services" href="/services" body="Hangars, FBO services, detailing, and more." />
         <Card title="Aircraft for sale" href="/marketplace" body="Browse jets for sale." />
         <Card title="My bookings" href="/bookings" body="Track your requests and trips." />

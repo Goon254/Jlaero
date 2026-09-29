@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
+import { deleteAccountForUser } from "@/lib/account-deletion";
 
 export type SettingsState = { error?: string; ok?: boolean };
 
@@ -94,9 +94,7 @@ export async function saveNotificationPrefs(
   return { ok: true };
 }
 
-// Account deletion (App Store / Play Store requirement, ROADMAP S17):
-// anonymizes PII and disables login. Bookings/reviews survive anonymized so
-// the counterparty's history and payment records stay intact.
+// Account deletion: see lib/account-deletion.ts (shared with the mobile API).
 export async function deleteAccount(
   _prev: SettingsState,
   formData: FormData
@@ -111,46 +109,8 @@ export async function deleteAccount(
     return { error: 'Type DELETE to confirm' };
   }
 
-  // Block while money or trips are in flight
-  const { count } = await supabase
-    .from("bookings")
-    .select("id", { count: "exact", head: true })
-    .or(`buyer_id.eq.${user.id},provider_id.eq.${user.id}`)
-    .in("status", [
-      "accepted",
-      "contract_signed",
-      "deposit_paid",
-      "paid_in_full",
-      "in_progress",
-      "disputed",
-    ]);
-  if (count && count > 0) {
-    return {
-      error:
-        "You have active bookings. Complete or cancel them before deleting your account.",
-    };
-  }
-
-  const sql = db();
-  await sql`
-    update profiles set
-      full_name = 'Deleted user',
-      avatar_url = null, phone = null, company_name = null,
-      bio = null, home_base = null, suspended_at = now()
-    where id = ${user.id}
-  `;
-  await sql`delete from verification_documents where user_id = ${user.id}`;
-  await sql`delete from notification_preferences where user_id = ${user.id}`;
-  await sql`delete from favorites where user_id = ${user.id}`;
-  // Disable login without deleting the auth row (cascades would erase the
-  // counterparty's booking history)
-  await sql`
-    update auth.users set
-      email = 'deleted+' || id || '@deleted.jlaero.invalid',
-      encrypted_password = md5(random()::text),
-      banned_until = '3000-01-01'
-    where id = ${user.id}
-  `;
+  const result = await deleteAccountForUser(supabase, user.id);
+  if (result.error) return { error: result.error };
 
   await supabase.auth.signOut();
   redirect("/?deleted=1");

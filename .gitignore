@@ -41,3 +41,7 @@ supabase/.temp/
 
 # Vendored agent skills (reinstall: npx skills add https://docs.stripe.com)
 .agents/
+
+# ---- Sourcing scripts (downloaded FAA registry + generated CSVs) ----
+scripts/sourcing/.cache/
+scripts/sourcing/out/

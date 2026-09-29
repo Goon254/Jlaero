@@ -38,11 +38,11 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: "Explore", tabBarIcon: tabIcon("compass-outline", "compass") }}
+        options={{ title: "Book", tabBarIcon: tabIcon("search-outline", "search") }}
       />
       <Tabs.Screen
         name="bookings"
-        options={{ title: "Trips", tabBarIcon: tabIcon("airplane-outline", "airplane") }}
+        options={{ title: "Trips", tabBarIcon: tabIcon("ticket-outline", "ticket") }}
       />
       <Tabs.Screen
         name="messages"

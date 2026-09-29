@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { Alert, Linking, ScrollView, View } from "react-native";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useSession } from "@/lib/session";
@@ -8,8 +8,8 @@ import { acceptQuote, cancelBooking } from "@/lib/booking";
 import { WEB_BASE_URL } from "@/lib/config";
 import { dateTime, money } from "@/lib/format";
 import { fonts, radius, space, useTheme } from "@/lib/theme";
-import { Button, Card, Icon, Pill, Screen, SectionTitle, Skeleton, StatusPill, Text } from "@/components/ui";
-import { Chat } from "@/components/Chat";
+import { Avatar, Button, Card, Icon, Pill, PressableCard, Screen, SectionTitle, Skeleton, StatusPill, Text } from "@/components/ui";
+import { initials, relativeTime } from "@/lib/format";
 
 type Booking = {
   id: string;
@@ -99,6 +99,8 @@ export default function BookingDetail() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [lastMessage, setLastMessage] = useState<{ body: string; created_at: string; mine: boolean } | null>(null);
+  const [unread, setUnread] = useState(0);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -121,6 +123,18 @@ export default function BookingDetail() {
     setBooking(b as unknown as Booking | null);
     setQuote((q?.[0] as Quote | undefined) ?? null);
     setConversationId(c?.id ?? null);
+    if (c?.id) {
+      const { data: msgs } = await supabase
+        .from("messages")
+        .select("body, created_at, sender_id, read_at")
+        .eq("conversation_id", c.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      const me = (await supabase.auth.getUser()).data.user?.id;
+      const last = msgs?.[0];
+      setLastMessage(last ? { body: last.body, created_at: last.created_at, mine: last.sender_id === me } : null);
+      setUnread((msgs ?? []).filter((m) => m.sender_id !== me && !m.read_at).length);
+    }
   }, [id]);
 
   useFocusEffect(
@@ -314,7 +328,51 @@ export default function BookingDetail() {
         {conversationId && (
           <View>
             <SectionTitle title="Messages" />
-            <Chat conversationId={conversationId} meId={meId} style={{ height: 380 }} />
+            <PressableCard
+              onPress={() =>
+                router.push({ pathname: "/conversation/[id]", params: { id: conversationId, title } })
+              }
+              accessibilityRole="button"
+              accessibilityLabel={`Open conversation${unread ? `, ${unread} unread` : ""}`}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
+                <Avatar label={initials(booking.aircraft?.name, "J")} />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
+                    <Text variant="bodyStrong" style={{ flex: 1 }} numberOfLines={1}>
+                      {role === "buyer" ? "Operator" : "Traveler"}
+                    </Text>
+                    {lastMessage && (
+                      <Text variant="caption" tone="tertiary">
+                        {relativeTime(lastMessage.created_at)}
+                      </Text>
+                    )}
+                  </View>
+                  <Text variant="caption" tone={unread ? "primary" : "secondary"} numberOfLines={1}>
+                    {lastMessage ? `${lastMessage.mine ? "You: " : ""}${lastMessage.body}` : "No messages yet. Say hello."}
+                  </Text>
+                </View>
+                {unread > 0 ? (
+                  <View
+                    style={{
+                      minWidth: 22,
+                      height: 22,
+                      paddingHorizontal: 6,
+                      borderRadius: radius.full,
+                      backgroundColor: colors.accent,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text variant="captionStrong" style={{ color: colors.onAccent, fontSize: 12 }}>
+                      {unread}
+                    </Text>
+                  </View>
+                ) : (
+                  <Icon name="chevron-forward" size="sm" color={colors.textTertiary} />
+                )}
+              </View>
+            </PressableCard>
           </View>
         )}
 

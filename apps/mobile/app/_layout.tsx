@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SessionProvider } from "@/lib/session";
 import { ThemeProvider, fonts, useTheme } from "@/lib/theme";
 import { useAppFonts } from "@/lib/fonts";
@@ -25,9 +26,13 @@ function Navigation() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="search" options={{ headerShown: false }} />
         <Stack.Screen name="aircraft/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="booking/[id]" options={{ title: "Booking" }} />
         <Stack.Screen name="conversation/[id]" options={{ title: "Conversation" }} />
+        <Stack.Screen name="settings/notifications" options={{ title: "Notifications" }} />
+        <Stack.Screen name="settings/payments" options={{ title: "Payments" }} />
+        <Stack.Screen name="settings/privacy" options={{ title: "Privacy and data" }} />
       </Stack>
     </>
   );
@@ -44,10 +49,12 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
-    <ThemeProvider>
-      <SessionProvider>
-        <Navigation />
-      </SessionProvider>
-    </ThemeProvider>
+    <KeyboardProvider>
+      <ThemeProvider>
+        <SessionProvider>
+          <Navigation />
+        </SessionProvider>
+      </ThemeProvider>
+    </KeyboardProvider>
   );
 }

@@ -35,6 +35,69 @@ whether sale listings stay self-serve; agent tooling for sourcing (request
 queue -> attach 3 tier quotes); fee model under brokerage pricing; empty legs
 under the new model; operator self-serve surface area.
 
+## DIRECTION UPDATE 2 (2026-09-12, from leadership): AI-driven sourcing
+
+The brokerage becomes AI-driven end to end: a trip request triggers automated
+sourcing of operators with suitable aircraft near the origin, AI-drafted RFQ
+emails to those operators, parsing of their quoted prices from the replies,
+a markup (operator quotes $4,000; traveler is offered $6,000; Jlaero keeps the
+spread after costs), tiered offers to the traveler, and confirmation with the
+operator. Research and the first data layer: `docs/sourcing-research.md`.
+
+**Framing that the research forces:** we target Part 135 charter OPERATORS
+(companies), not private individuals. Only certificate holders can legally
+fly charter, their contacts are business contacts (CAN-SPAM territory rather
+than harvesting private people's emails), and the FAA publishes the list.
+
+Decisions taken 2026-09-12 (leadership: markup stays flexible to beat
+competitors; the rest are engineering calls): pricing is policy-per-tier with
+a per-offer override and a competitor-beat mode floored at a minimum margin;
+only aircraft on a Part 135 certificate are matched or tracked, so privacy-
+blocked private jets never enter the system; Avinode waits until first
+revenue; launch regions are New York metro, South Florida, Southern
+California, Texas, Chicago; RFQs send from a named desk mailbox through
+Postmark with a unique reply address per operator.
+
+Sourcing phases:
+
+- **S1. Data layer** [x] migration 0016 + `scripts/sourcing/`: FAA registry
+  (28.9k business aircraft), Part 135 holders (1.8k operators, 5.6k linked
+  aircraft), ADS-B snapshot, `nearby_available_aircraft()`.
+- **S2. Contacts** [~] `targets.mjs` ranks operators per launch region into
+  `out/targets.csv`; research fills charter-desk emails; `import-contacts.mjs`
+  loads them. Admin can also add a contact inline on the workbench.
+  Operators who sign up link via `operators.profile_id`. Still to do: email-
+  finder API step, operator self-serve claim of their certificate.
+- **S3. Position poller** [x] `/api/cron/positions` every 10 min (vercel.json,
+  CRON_SECRET): launch metros plus open-request origins, charter fleets only,
+  nearest-airport resolution.
+- **S4. RFQ loop** [x] migration 0017: trip_requests, rfqs, rfq_recipients,
+  rfq_messages, operator_quotes. Engine in `apps/web/lib/sourcing/`: matching
+  (category fit, live on-ground within radius, fleet registration proximity),
+  Claude Opus 5 drafts one email per operator, Postmark sends with
+  `rfq+<token>@reply domain`, inbound webhook `/api/rfq/inbound` correlates
+  (token, In-Reply-To, sender), Haiku 4.5 classifies, Opus 5 extracts a
+  structured quote. Unsubscribe honored automatically.
+- **S5. Pricing + offers** [x] `pricing_policies` (value 12%, preferred 18%,
+  premium 25%; min margins 6/8/10% with dollar floors), `priceOffer()` with
+  competitor-beat and manual modes, `traveler_offers`, admin workbench at
+  `/admin/sourcing/[id]` (approve drafts, review quotes, price, present),
+  traveler pages `/request`, `/requests`, `/requests/[id]`, and
+  `accept_traveler_offer()` which creates the booking + accepted quote so the
+  existing contract and payment flow takes over. Every step audited.
+- **S6. Part 295 compliance** [~] disclosure shown at acceptance (broker
+  status, carrier name, price, insurance pointer) and on request pages;
+  CAN-SPAM footer on every RFQ. Still to do: website language pass and
+  lawyer review; insurance limits text in the contract template.
+- **S7. Photos** [ ] operator-supplied imagery with permission, at onboarding.
+
+Env needed to go live: ANTHROPIC_API_KEY, POSTMARK_SERVER_TOKEN,
+RFQ_FROM_EMAIL, RFQ_REPLY_DOMAIN (MX to Postmark inbound), RFQ_INBOUND_SECRET,
+RFQ_POSTAL_ADDRESS, CRON_SECRET, DATABASE_URL. See apps/web/.env.example.
+
+Still open for leadership: none blocking. Revisit Avinode once the first
+bookings close; review the tier markups after the first ten quotes.
+
 ---
 
 

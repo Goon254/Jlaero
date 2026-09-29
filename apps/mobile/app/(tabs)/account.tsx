@@ -1,9 +1,9 @@
 import { useCallback, useState } from "react";
-import { Alert, Linking, ScrollView, View } from "react-native";
+import { Alert, ScrollView, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useSession } from "@/lib/session";
-import { WEB_BASE_URL } from "@/lib/config";
+import { openWeb } from "@/lib/web";
 import { initials } from "@/lib/format";
 import { space, useTheme, type ThemePreference } from "@/lib/theme";
 import {
@@ -56,7 +56,7 @@ export default function Account() {
     ]);
   }
 
-  const open = (path: string) => () => Linking.openURL(`${WEB_BASE_URL}${path}`);
+  const web = (path: string, auth = true) => () => openWeb(path, { auth });
   const verified = profile?.verification === "verified";
   const name = profile?.full_name ?? "Traveler";
 
@@ -110,7 +110,7 @@ export default function Account() {
             <SectionTitle title="Manage" />
             <Card padded={false}>
               {roles.includes("owner") && (
-                <ListRow first icon="business-outline" label="My listings" detail="Opens on the web" external onPress={open("/owner")} />
+                <ListRow first icon="business-outline" label="My listings" detail="Opens on the web" external onPress={web("/owner")} />
               )}
               {roles.includes("crew") && (
                 <ListRow
@@ -119,7 +119,7 @@ export default function Account() {
                   label="Crew profile"
                   detail="Opens on the web"
                   external
-                  onPress={open("/crew/me")}
+                  onPress={web("/crew/me")}
                 />
               )}
             </Card>
@@ -129,32 +129,18 @@ export default function Account() {
         <View>
           <SectionTitle title="Settings" />
           <Card padded={false}>
-            <ListRow first icon="card-outline" label="Payments" detail="Cards and payouts" external onPress={open("/settings/payments")} />
-            <ListRow icon="notifications-outline" label="Notifications" external onPress={open("/settings/notifications")} />
+            <ListRow first icon="notifications-outline" label="Notifications" detail="Email and push" onPress={() => router.push("/settings/notifications")} />
+            <ListRow icon="card-outline" label="Payments" detail="How you pay and get paid" onPress={() => router.push("/settings/payments")} />
+            <ListRow icon="shield-checkmark-outline" label="Privacy and data" detail="Request your data, delete account" onPress={() => router.push("/settings/privacy")} />
           </Card>
         </View>
 
         <View>
           <SectionTitle title="Support" />
           <Card padded={false}>
-            <ListRow first icon="help-circle-outline" label="Help and FAQ" external onPress={open("/help")} />
-            <ListRow icon="document-text-outline" label="Terms of Service" external onPress={open("/terms")} />
-            <ListRow icon="lock-closed-outline" label="Privacy Policy" external onPress={open("/privacy")} />
-            <ListRow
-              icon="trash-outline"
-              label="Delete account"
-              danger
-              onPress={() =>
-                Alert.alert(
-                  "Delete account",
-                  "Deletion is confirmed on the web. Your profile is anonymized and login is disabled.",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    { text: "Continue", style: "destructive", onPress: open("/settings/delete-account") },
-                  ]
-                )
-              }
-            />
+            <ListRow first icon="help-circle-outline" label="Help and FAQ" external onPress={web("/help", false)} />
+            <ListRow icon="document-text-outline" label="Terms of Service" external onPress={web("/terms", false)} />
+            <ListRow icon="lock-closed-outline" label="Privacy Policy" external onPress={web("/privacy", false)} />
           </Card>
         </View>
 

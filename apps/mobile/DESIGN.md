@@ -51,3 +51,36 @@ other variants scale freely.
 2. Pull colors from `useTheme()` and text from `Text`.
 3. Loading uses `Skeleton`, empty uses `EmptyState`.
 4. Check the screen in both Light and Dark from Account > Appearance.
+
+## Form inputs
+
+Never make the user type what they can pick.
+
+- Airports: `AirportField` (components/AirportPicker.tsx) searches the
+  `airports` table by code, name, or city and falls back to manual code entry
+  when nothing matches.
+- Dates: `DateField` wraps the native date picker (inline sheet on iOS,
+  dialog on Android). Convert with `toDateOnly` when submitting.
+- Counts: `Stepper` (guests). No keyboard.
+- Toggles: `SwitchRow` inside a `Card padded={false}`.
+- Anything with a keyboard sits inside `KeyboardAwareScrollView` (forms) or
+  `KeyboardAvoidingView` (chat) from react-native-keyboard-controller, which
+  handles Android edge-to-edge correctly. `KeyboardProvider` wraps the app.
+
+## Web hand-off
+
+`openWeb(path, { auth: true })` in lib/web.ts opens the in-app browser with
+the current session handed to the web app via `/auth/handoff`, so settings
+pages that only exist on the web open signed in. Public pages use
+`auth: false`.
+
+## Booking flow (XO-informed)
+
+The Book tab is a search box, not a listing feed. Route (From/To in one
+card with swap), dates, passengers, Search. Results in `app/search.tsx` show
+an ESTIMATED all-in price per aircraft (hourly rate x block hours from the
+great-circle distance, see `lib/search.ts`), lowest first, with an
+instant/quote badge and a class filter that teaches capacity and range.
+Aircraft detail carries the trip params so the estimate and form are
+pre-filled. Estimates are always labelled as estimates; the quote is the
+price. Empty legs surface on Book as deal cards.
