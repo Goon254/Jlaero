@@ -1,8 +1,14 @@
-// Operator matching for a trip request. Runs on the direct database
-// connection (service path) because registry, positions and operators are
-// ops-only tables. Only aircraft on a Part 135 certificate (operator_id set)
-// are ever considered, which also keeps privately owned, privacy-blocked
-// aircraft out of the picture by construction.
+// Operator search for a trip (blueprint s10):
+//   1. operators at or near the origin
+//   2. operators at or near the destination
+//   3. approved operators within the configurable radius (default 100 miles)
+//   4. aircraft requirements (category, seats, range)
+//   5. availability signals (declared status, live ADS-B on the ground)
+// The approved network (operators + operator_aircraft the company maintains)
+// is searched first; FAA Part 135 "prospects" are a fallback while the network
+// is being built, and can be switched off in settings. Excluded and inactive
+// operators are never returned. Only certificate holders are considered, which
+// keeps privately owned aircraft out by construction.
 import { AIRCRAFT_CATEGORY_LABELS, haversineNm, type AircraftCategory } from "@jlaero/shared";
 import { db } from "@/lib/db";
 
@@ -60,114 +66,199 @@ export type Candidate = {
   fleet: { n_number: string; model: string; category: string; seats: number | null; year: number | null }[];
   nearby_now: number;
   state_hint: string | null;
+  network_status: string;
   score: number;
   reason: string;
 };
 
 export type TripContext = {
   id: string;
-  origin: { icao: string; name: string; latitude: number; longitude: number };
-  destination: { icao: string; name: string; latitude: number; longitude: number };
+  trip_number: string;
+  origin: { icao: string; name: string; latitude: number; longitude: number; tz: string | null };
+  destination: { icao: string; name: string; latitude: number; longitude: number; tz: string | null };
   depart_at: Date;
   return_at: Date | null;
   passengers: number;
   category_pref: AircraftCategory | null;
+  aircraft_preference: string | null;
+  catering: boolean;
+  vehicle: boolean;
   notes: string | null;
   sourcing_radius_nm: number;
+  radius_miles: number;
   distanceNm: number;
   categories: AircraftCategory[];
 };
 
-export async function loadTrip(requestId: string): Promise<TripContext> {
+const MILES_TO_NM = 0.868976;
+
+export async function loadTrip(tripId: string): Promise<TripContext> {
   const sql = db();
   const [row] = await sql`
-    select t.*, o.name as o_name, o.latitude as o_lat, o.longitude as o_lon,
-           d.name as d_name, d.latitude as d_lat, d.longitude as d_lon
-    from trip_requests t
+    select t.*, o.name as o_name, o.latitude as o_lat, o.longitude as o_lon, o.tz as o_tz,
+           d.name as d_name, d.latitude as d_lat, d.longitude as d_lon, d.tz as d_tz
+    from trips t
     join airports o on o.icao = t.origin_icao
     join airports d on d.icao = t.destination_icao
-    where t.id = ${requestId}`;
-  if (!row) throw new Error("trip request not found");
+    where t.id = ${tripId}`;
+  if (!row) throw new Error("trip not found");
   const distanceNm = Math.round(haversineNm(row.o_lat, row.o_lon, row.d_lat, row.d_lon));
-  const pref = (row.category_pref as AircraftCategory | null) ?? null;
+  const pref = (row.aircraft_category as AircraftCategory | null) ?? null;
+  const radiusMiles = Number(row.search_radius_miles);
   return {
     id: row.id,
-    origin: { icao: row.origin_icao, name: row.o_name, latitude: row.o_lat, longitude: row.o_lon },
-    destination: { icao: row.destination_icao, name: row.d_name, latitude: row.d_lat, longitude: row.d_lon },
+    trip_number: row.trip_number,
+    origin: { icao: row.origin_icao, name: row.o_name, latitude: row.o_lat, longitude: row.o_lon, tz: row.o_tz },
+    destination: { icao: row.destination_icao, name: row.d_name, latitude: row.d_lat, longitude: row.d_lon, tz: row.d_tz },
     depart_at: row.depart_at,
     return_at: row.return_at,
     passengers: row.passengers,
     category_pref: pref,
-    notes: row.notes,
-    sourcing_radius_nm: Number(row.sourcing_radius_nm),
+    aircraft_preference: row.aircraft_preference,
+    catering: row.catering_required,
+    vehicle: row.vehicle_required,
+    notes: row.special_requests,
+    sourcing_radius_nm: Math.round(radiusMiles * MILES_TO_NM),
+    radius_miles: radiusMiles,
     distanceNm,
     categories: categoriesForTrip(row.passengers, distanceNm, pref),
   };
 }
 
-export async function findCandidates(trip: TripContext, limit = 12): Promise<Candidate[]> {
+export async function findCandidates(trip: TripContext, limit = 12, opts: { includeProspects?: boolean; excludeOperatorIds?: string[] } = {}): Promise<Candidate[]> {
   const sql = db();
-  const rows = await sql`
-    select o.id as operator_id, o.name, o.certificate_number, o.outreach_status,
-           c.id as contact_id, c.email as contact_email, c.full_name as contact_name,
-           r.n_number, r.model, r.category, r.seats, r.year_mfr, r.registrant_state, r.icao_hex,
-           p.on_ground, p.latitude as p_lat, p.longitude as p_lon, p.seen_at
-    from operators o
-    join registry_aircraft r on r.operator_id = o.id
-    left join lateral (
-      select id, email, full_name from operator_contacts
-      where operator_id = o.id and unsubscribed_at is null and bounced_at is null
-      order by is_primary desc, verified_at desc nulls last, created_at limit 1
-    ) c on true
-    left join aircraft_positions p on p.icao_hex = r.icao_hex and p.seen_at > now() - interval '12 hours'
-    where o.outreach_status not in ('do_not_contact', 'declined')
-      and r.category = any(${trip.categories}::aircraft_category[])
-      and (r.seats is null or r.seats >= ${trip.passengers})`;
-
-  const byOp = new Map<string, Candidate & { states: Map<string, number> }>();
-  for (const r of rows) {
-    if (NON_CHARTER.test(r.name)) continue;
+  const includeProspects = opts.includeProspects ?? true;
+  const exclude = opts.excludeOperatorIds ?? [];
+  const byOp = new Map<string, Candidate & { states: Map<string, number>; nearOrigin: number; nearDest: number }>();
+  const ensure = (r: { operator_id: string; name: string; certificate_number: string | null; contact_id: string | null; contact_email: string | null; contact_name: string | null; network_status: string }) => {
     let c = byOp.get(r.operator_id);
     if (!c) {
       c = {
         operator_id: r.operator_id, name: r.name, certificate_number: r.certificate_number,
         contact_id: r.contact_id, contact_email: r.contact_email, contact_name: r.contact_name,
-        fleet: [], nearby_now: 0, state_hint: null, score: 0, reason: "", states: new Map(),
+        fleet: [], nearby_now: 0, state_hint: null, network_status: r.network_status, score: 0, reason: "",
+        states: new Map(), nearOrigin: Infinity, nearDest: Infinity,
       };
       byOp.set(r.operator_id, c);
     }
-    c.fleet.push({ n_number: r.n_number, model: r.model, category: r.category, seats: r.seats, year: r.year_mfr });
-    if (r.registrant_state) c.states.set(r.registrant_state, (c.states.get(r.registrant_state) ?? 0) + 1);
-    if (r.on_ground && r.p_lat != null) {
-      const d = haversineNm(trip.origin.latitude, trip.origin.longitude, r.p_lat, r.p_lon);
-      if (d <= trip.sourcing_radius_nm) c.nearby_now += 1;
+    return c;
+  };
+  const contactJoin = sql`left join lateral (
+      select id, email, full_name from operator_contacts
+      where operator_id = o.id and unsubscribed_at is null and bounced_at is null
+      order by is_primary desc, verified_at desc nulls last, created_at limit 1
+    ) c on true`;
+
+  // Network: the company's own operator and aircraft records.
+  const network = await sql`
+    select o.id as operator_id, o.name, o.certificate_number, o.network_status, o.search_priority, o.base_icaos,
+           coalesce(c.email, o.general_email) as contact_email, c.id as contact_id, c.full_name as contact_name,
+           a.aircraft_type, a.category, a.passenger_capacity, a.year_mfr, a.tail_number, a.availability_status,
+           b.latitude as b_lat, b.longitude as b_lon, b.icao as b_icao
+    from operators o
+    ${contactJoin}
+    left join operator_aircraft a on a.operator_id = o.id
+    left join airports b on b.icao = a.home_base_icao
+    where o.network_status in ('approved', 'preferred')
+      and o.id <> all(${exclude}::uuid[])`;
+  const baseAirports = new Map<string, { lat: number; lon: number }>();
+  const baseCodes = [...new Set(network.flatMap((r) => (r.base_icaos as string[]) ?? []))];
+  if (baseCodes.length) {
+    for (const a of await sql`select icao, latitude, longitude from airports where icao = any(${baseCodes})`) {
+      baseAirports.set(a.icao, { lat: a.latitude, lon: a.longitude });
+    }
+  }
+  for (const r of network) {
+    const c = ensure(r as never);
+    (c as unknown as { priority: number }).priority = Number(r.search_priority ?? 0);
+    const points: { lat: number; lon: number }[] = [];
+    if (r.b_lat != null) points.push({ lat: r.b_lat, lon: r.b_lon });
+    for (const code of (r.base_icaos as string[]) ?? []) { const p = baseAirports.get(code); if (p) points.push(p); }
+    for (const p of points) {
+      c.nearOrigin = Math.min(c.nearOrigin, haversineNm(trip.origin.latitude, trip.origin.longitude, p.lat, p.lon));
+      c.nearDest = Math.min(c.nearDest, haversineNm(trip.destination.latitude, trip.destination.longitude, p.lat, p.lon));
+    }
+    if (r.aircraft_type) {
+      const fits = (!r.category || trip.categories.includes(r.category)) && (!r.passenger_capacity || r.passenger_capacity >= trip.passengers)
+        && !["maintenance", "unavailable"].includes(r.availability_status);
+      if (fits) c.fleet.push({ n_number: r.tail_number ?? "", model: r.aircraft_type, category: r.category ?? "", seats: r.passenger_capacity, year: r.year_mfr });
     }
   }
 
+  // Prospects: FAA Part 135 fleets, located by live ADS-B or registration state.
+  if (includeProspects) {
+    const rows = await sql`
+      select o.id as operator_id, o.name, o.certificate_number, o.network_status,
+             c.id as contact_id, coalesce(c.email, o.general_email) as contact_email, c.full_name as contact_name,
+             r.n_number, r.model, r.category, r.seats, r.year_mfr, r.registrant_state,
+             p.on_ground, p.latitude as p_lat, p.longitude as p_lon
+      from operators o
+      join registry_aircraft r on r.operator_id = o.id
+      ${contactJoin}
+      left join aircraft_positions p on p.icao_hex = r.icao_hex and p.seen_at > now() - interval '12 hours'
+      where o.network_status = 'prospect'
+        and o.outreach_status not in ('do_not_contact', 'declined')
+        and o.id <> all(${exclude}::uuid[])
+        and r.category = any(${trip.categories}::aircraft_category[])
+        and (r.seats is null or r.seats >= ${trip.passengers})`;
+    for (const r of rows) {
+      if (NON_CHARTER.test(r.name)) continue;
+      const c = ensure(r as never);
+      c.fleet.push({ n_number: r.n_number, model: r.model, category: r.category, seats: r.seats, year: r.year_mfr });
+      if (r.registrant_state) c.states.set(r.registrant_state, (c.states.get(r.registrant_state) ?? 0) + 1);
+      if (r.on_ground && r.p_lat != null) {
+        const dO = haversineNm(trip.origin.latitude, trip.origin.longitude, r.p_lat, r.p_lon);
+        const dD = haversineNm(trip.destination.latitude, trip.destination.longitude, r.p_lat, r.p_lon);
+        if (dO <= trip.sourcing_radius_nm || dD <= trip.sourcing_radius_nm) c.nearby_now += 1;
+        c.nearOrigin = Math.min(c.nearOrigin, dO);
+        c.nearDest = Math.min(c.nearDest, dD);
+      }
+    }
+  }
+
+  const radius = trip.sourcing_radius_nm;
   const out: Candidate[] = [];
   for (const c of byOp.values()) {
     const reasons: string[] = [];
     let score = 0;
-    if (c.nearby_now > 0) { score += 50 + Math.min(c.nearby_now, 5) * 5; reasons.push(`${c.nearby_now} suitable aircraft on the ground within ${trip.sourcing_radius_nm} nm right now`); }
-    let bestState: string | null = null, bestDist = Infinity;
-    for (const [st, n] of c.states) {
-      const cen = STATE_CENTROIDS[st];
-      if (!cen) continue;
-      const d = haversineNm(trip.origin.latitude, trip.origin.longitude, cen[0], cen[1]);
-      if (d < bestDist) { bestDist = d; bestState = st; }
-      if (d <= 400) score += Math.min(n, 4) * 5;
+    const inNetwork = c.network_status === "approved" || c.network_status === "preferred";
+    if (c.network_status === "preferred") { score += 60; reasons.push("preferred operator"); }
+    else if (c.network_status === "approved") { score += 40; reasons.push("approved operator"); }
+    score += Math.min(Math.max((c as unknown as { priority?: number }).priority ?? 0, 0), 20);
+    // Steps 1-3: origin first, then destination, then the wider radius.
+    if (c.nearOrigin <= 15) { score += 50; reasons.push(`based at ${trip.origin.icao}`); }
+    else if (c.nearOrigin <= radius) { score += 40; reasons.push(`based ${Math.round(c.nearOrigin / MILES_TO_NM)} mi from ${trip.origin.icao}`); }
+    else if (c.nearDest <= 15) { score += 30; reasons.push(`based at ${trip.destination.icao}`); }
+    else if (c.nearDest <= radius) { score += 25; reasons.push(`based ${Math.round(c.nearDest / MILES_TO_NM)} mi from ${trip.destination.icao}`); }
+    else if (inNetwork && Number.isFinite(c.nearOrigin)) reasons.push(`outside the ${trip.radius_miles} mi radius`);
+    if (c.nearby_now > 0) { score += 20 + Math.min(c.nearby_now, 5) * 4; reasons.push(`${c.nearby_now} suitable aircraft on the ground nearby now`); }
+    if (!inNetwork) {
+      let bestState: string | null = null, bestDist = Infinity;
+      for (const [st] of c.states) {
+        const cen = STATE_CENTROIDS[st];
+        if (!cen) continue;
+        const d = haversineNm(trip.origin.latitude, trip.origin.longitude, cen[0], cen[1]);
+        if (d < bestDist) { bestDist = d; bestState = st; }
+      }
+      if (bestState && bestDist <= 400) { score += 10; reasons.push(`fleet registered in ${bestState}`); }
+      c.state_hint = bestState;
     }
-    if (bestState && bestDist <= 400) reasons.push(`fleet registered in ${bestState}, about ${Math.round(bestDist)} nm from ${trip.origin.icao}`);
-    else if (bestState) reasons.push(`fleet registered in ${bestState}`);
-    c.state_hint = bestState;
-    if (c.contact_email) { score += 30; } else reasons.push("no contact email yet");
-    const fit = c.fleet.filter((f) => trip.categories.includes(f.category as AircraftCategory)).length;
+    // Step 4: aircraft requirements.
+    const fit = c.fleet.length;
+    if (inNetwork && fit === 0 && byOp.size > 0) {
+      const hasFleet = network.some((r) => r.operator_id === c.operator_id && r.aircraft_type);
+      if (hasFleet) continue; // their declared fleet does not fit this trip
+      reasons.push("fleet not on file");
+    }
     score += Math.min(fit, 6) * 2;
-    reasons.push(`${fit} fitting aircraft: ${[...new Set(c.fleet.map((f) => f.model))].slice(0, 3).join(", ")}`);
+    if (fit) reasons.push(`${fit} fitting aircraft: ${[...new Set(c.fleet.map((f) => f.model))].slice(0, 3).join(", ")}`);
+    if (c.contact_email) score += 30; else reasons.push("no contact email yet");
+    // Prospects must show some geographic signal to be worth an email.
+    if (!inNetwork && score < 30) continue;
     c.score = score;
     c.reason = reasons.join("; ");
-    const { states, ...rest } = c;
-    void states;
+    const { states, nearOrigin, nearDest, ...rest } = c;
+    void states; void nearOrigin; void nearDest;
     out.push(rest);
   }
   out.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
@@ -176,5 +267,5 @@ export async function findCandidates(trip: TripContext, limit = 12): Promise<Can
 
 export function tripSummaryText(trip: TripContext) {
   const fmt = (d: Date) => d.toISOString().replace("T", " ").slice(0, 16) + " UTC";
-  return `${trip.origin.icao} (${trip.origin.name}) to ${trip.destination.icao} (${trip.destination.name}), ${trip.distanceNm} nm, departing ${fmt(trip.depart_at)}${trip.return_at ? `, returning ${fmt(trip.return_at)}` : ", one way"}, ${trip.passengers} passengers, cabin ${trip.category_pref ? AIRCRAFT_CATEGORY_LABELS[trip.category_pref] : "any suitable"}`;
+  return `${trip.trip_number}: ${trip.origin.icao} (${trip.origin.name}) to ${trip.destination.icao} (${trip.destination.name}), ${trip.distanceNm} nm, departing ${fmt(trip.depart_at)}${trip.return_at ? `, returning ${fmt(trip.return_at)}` : ", one way"}, ${trip.passengers} passengers, aircraft ${trip.aircraft_preference ?? (trip.category_pref ? AIRCRAFT_CATEGORY_LABELS[trip.category_pref] : "any suitable")}${trip.catering ? ", catering requested" : ""}${trip.vehicle ? ", ground vehicle requested" : ""}`;
 }

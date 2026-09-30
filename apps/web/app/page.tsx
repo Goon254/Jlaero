@@ -1,101 +1,80 @@
 import Link from "next/link";
+import { ArrowRight, FileSignature, Plane, Search, ShieldCheck } from "lucide-react";
+import { Brand } from "@/components/lux/Brand";
+import { ButtonLink } from "@/components/lux/ui";
 
-const MARKETS = [
-  {
-    title: "Charter a jet",
-    body: "Tell us the trip; get service tiers with one final price. Our team sources the right aircraft from a global operator network.",
-    href: "/charter",
-  },
-  {
-    title: "Aviation services",
-    body: "Hangars, FBO services, aircraft detailing, catering, ground transport. One request, one final price.",
-    href: "/services",
-  },
-  {
-    title: "Buy & sell aircraft",
-    body: "Browse jets for sale or sell your own. Reach qualified buyers and operators worldwide.",
-    href: "/marketplace",
-  },
+// Landing page for the brokerage: one clear path, Request a Charter.
+// Marketplace, crew and sale routes still exist but are no longer promoted.
+const STEPS = [
+  { icon: Search, title: "Request", body: "Tell us the route, dates, passengers and any special requests. Two minutes, in the app or by email." },
+  { icon: Plane, title: "Choose", body: "We search certificated operators near your route and send up to three aircraft options with clear pricing." },
+  { icon: FileSignature, title: "Sign and pay", body: "Your broker verifies availability. Sign your agreement and pay securely; the trip is confirmed once payment is verified." },
+  { icon: ShieldCheck, title: "Fly", body: "Branded itinerary, 72-hour countdown, trip tracking, and a broker watching every detail until you land." },
 ];
 
 export default function Home() {
   return (
-    <main className="min-h-screen">
-      <header className="flex items-center justify-between px-6 py-5 md:px-12">
-        <span className="text-xl font-semibold tracking-tight">
-          Jl<span className="text-gold">aero</span>
-        </span>
-        <nav className="flex items-center gap-6 text-sm">
-          <Link href="/charter" className="hover:text-gold">Charter</Link>
-          <Link href="/services" className="hover:text-gold">Services</Link>
-          <Link href="/marketplace" className="hover:text-gold">Marketplace</Link>
-          <Link
-            href="/login"
-            className="rounded-full bg-gold px-4 py-2 font-medium text-ink hover:bg-gold-light"
-          >
-            Sign in
-          </Link>
+    <div className="lux min-h-screen">
+      <header className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-5 sm:px-6">
+        <Brand />
+        <nav aria-label="Main" className="ml-auto flex items-center gap-1 text-sm font-medium">
+          <Link href="/trips" className="hidden rounded-lg px-3 py-2 text-fg-2 hover:bg-neutral-soft hover:text-fg sm:inline-flex">My trips</Link>
+          <Link href="/login" className="rounded-lg px-3 py-2 text-fg-2 hover:bg-neutral-soft hover:text-fg">Sign in</Link>
+          <Link href="/request" className="rounded-lg bg-fg px-4 py-2 text-canvas hover:opacity-90">Request a Charter</Link>
         </nav>
       </header>
 
-      <section className="px-6 pb-16 pt-16 md:px-12 md:pt-28">
-        <p className="mb-4 text-sm uppercase tracking-[0.2em] text-gold">
-          Private aviation, on demand
-        </p>
-        <h1 className="max-w-3xl text-4xl font-semibold leading-tight md:text-6xl">
-          The marketplace for private jets, crew, and aircraft.
-        </h1>
-        <p className="mt-6 max-w-xl text-lg text-slate-300">
-          Book a charter in minutes, hire vetted crew, or list your aircraft for
-          charter or sale. One platform for everyone in private aviation.
-        </p>
-        <div className="mt-10 flex flex-wrap gap-4">
-          <Link
-            href="/charter"
-            className="rounded-full bg-gold px-6 py-3 font-medium text-ink hover:bg-gold-light"
-          >
-            Find a flight
-          </Link>
-          <Link
-            href="/list"
-            className="rounded-full border border-slate-600 px-6 py-3 font-medium hover:border-gold hover:text-gold"
-          >
-            List your aircraft
-          </Link>
-        </div>
-      </section>
+      <main>
+        <section className="mx-auto max-w-6xl px-4 pb-16 pt-14 sm:px-6 md:pt-24">
+          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-accent-text">Private jet charter</p>
+          <h1 className="max-w-3xl font-display text-4xl font-semibold leading-[1.1] tracking-tight md:text-6xl">
+            Your private flight, arranged with care.
+          </h1>
+          <p className="mt-6 max-w-xl text-lg text-fg-2">
+            Request a charter and receive up to three verified aircraft options. Technology does the searching; your broker handles every decision that matters.
+          </p>
+          <div className="mt-10 flex flex-wrap gap-3">
+            <ButtonLink href="/request" className="min-h-[52px] px-7 text-base">
+              Request a Charter <ArrowRight className="h-4 w-4" aria-hidden />
+            </ButtonLink>
+            <ButtonLink href="/trips" variant="secondary" className="min-h-[52px] px-7 text-base">View my trips</ButtonLink>
+          </div>
+        </section>
 
-      <section className="grid gap-6 px-6 pb-24 md:grid-cols-3 md:px-12">
-        {MARKETS.map((m) => (
-          <Link
-            key={m.href}
-            href={m.href}
-            className="rounded-2xl border border-slate-800 bg-ink-soft p-6 transition hover:border-gold"
-          >
-            <h2 className="text-xl font-semibold">{m.title}</h2>
-            <p className="mt-3 text-sm text-slate-400">{m.body}</p>
-            <span className="mt-4 inline-block text-sm text-gold">Explore →</span>
-          </Link>
-        ))}
-      </section>
+        <section aria-labelledby="how" className="border-t border-line bg-raised">
+          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+            <h2 id="how" className="font-display text-2xl font-semibold md:text-3xl">How it works</h2>
+            <ol className="mt-8 grid gap-6 md:grid-cols-4">
+              {STEPS.map((s, i) => (
+                <li key={s.title} className="rounded-2xl border border-line bg-surface p-6">
+                  <s.icon className="h-6 w-6 text-accent-text" aria-hidden />
+                  <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-fg-3">Step {i + 1}</p>
+                  <h3 className="mt-1 font-display text-xl font-semibold">{s.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-fg-2">{s.body}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+      </main>
 
-      <footer className="border-t border-slate-800 px-6 py-8 md:px-12">
-        <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-slate-500">
-          <span>© {new Date().getFullYear()} Jlaero. Private aviation marketplace.</span>
-          <nav className="flex flex-wrap gap-5">
-            <Link href="/about" className="hover:text-gold">About</Link>
-            <Link href="/help" className="hover:text-gold">Help</Link>
-            <Link href="/contact" className="hover:text-gold">Contact</Link>
-            <Link href="/terms" className="hover:text-gold">Terms</Link>
-            <Link href="/privacy" className="hover:text-gold">Privacy</Link>
-          </nav>
+      <footer className="border-t border-line">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-fg-3">
+            <span>© {new Date().getFullYear()} Jlaero. Private jet charter.</span>
+            <nav aria-label="Footer" className="flex flex-wrap gap-5">
+              <Link href="/about" className="hover:text-fg">About</Link>
+              <Link href="/help" className="hover:text-fg">Help</Link>
+              <Link href="/contact" className="hover:text-fg">Contact</Link>
+              <Link href="/terms" className="hover:text-fg">Terms</Link>
+              <Link href="/privacy" className="hover:text-fg">Privacy</Link>
+            </nav>
+          </div>
+          <p className="mt-4 text-xs text-fg-3">
+            Jlaero is an air charter broker and is not a direct air carrier. All flights are operated by FAA Part 135 certificated air carriers that exercise full operational control of the flight.
+          </p>
         </div>
-        <p className="mt-4 text-xs text-slate-600">
-          Jlaero is a technology marketplace, not an air carrier or direct air
-          carrier. All flights are operated by FAA-certificated air carriers
-          who exercise full operational control.
-        </p>
       </footer>
-    </main>
+    </div>
   );
 }

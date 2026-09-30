@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 
 // Refreshes aircraft_positions for charter-operator aircraft only. Polls one
 // ADS-B point query per region: the fixed launch metros plus the origin of
-// every open trip request. Runs every 10 minutes (vercel.json) with the
+// every trip still being sourced. Runs every 10 minutes (vercel.json) with the
 // CRON_SECRET bearer token Vercel sends.
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +25,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const sql = db();
-  const open = await sql`select distinct origin_icao as icao, sourcing_radius_nm as radius from trip_requests where status in ('open', 'sourcing', 'offers_ready')`;
+  const open = await sql`select distinct origin_icao as icao, round(search_radius_miles * 0.869) as radius from trips
+    where status in ('new_request', 'searching', 'quotes_received', 'broker_review', 'operational_issue', 'replacement_search')`;
   const regions = new Map<string, number>();
   for (const r of [...LAUNCH_REGIONS, ...open]) regions.set(r.icao, Math.max(regions.get(r.icao) ?? 0, Math.min(Number(r.radius), 250)));
 

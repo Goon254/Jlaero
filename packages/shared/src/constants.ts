@@ -1,6 +1,6 @@
 // Domain constants shared across web + mobile.
 
-export const APP_ROLES = ["traveler", "owner", "crew", "admin"] as const;
+export const APP_ROLES = ["traveler", "owner", "crew", "admin", "broker", "finance"] as const;
 export type AppRole = (typeof APP_ROLES)[number];
 
 export const ACCOUNT_TYPES = ["individual", "business"] as const;

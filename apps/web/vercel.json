@@ -1,5 +1,6 @@
 {
   "crons": [
-    { "path": "/api/cron/positions", "schedule": "*/10 * * * *" }
+    { "path": "/api/cron/positions", "schedule": "*/10 * * * *" },
+    { "path": "/api/cron/trips", "schedule": "*/10 * * * *" }
   ]
 }

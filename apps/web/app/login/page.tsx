@@ -7,6 +7,12 @@ import { createClient } from "@/lib/supabase/client";
 
 type Mode = "signin" | "signup";
 
+// Where to go after sign-in: a same-site path from ?next=, else the dashboard.
+function nextPath() {
+  const next = new URLSearchParams(window.location.search).get("next");
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -41,7 +47,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       setLoading(false);
       if (error) return setError(error.message);
-      router.push("/dashboard");
+      router.push(nextPath());
       router.refresh();
     }
   }

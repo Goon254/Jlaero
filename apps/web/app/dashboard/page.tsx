@@ -10,6 +10,7 @@ export default async function DashboardPage() {
   if (!user.profile?.full_name) redirect("/onboarding");
 
   const isOwner = user.roles.includes("owner");
+  const isStaff = user.roles.some((r) => r === "admin" || r === "broker" || r === "finance");
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
@@ -33,12 +34,9 @@ export default async function DashboardPage() {
       </header>
 
       <section className="mt-10 grid gap-4 sm:grid-cols-2">
-        <Card title="Request a trip" href="/request" body="Tell us the route; we return three all-in options." />
-        <Card title="My trip requests" href="/requests" body="Options we found and trips in progress." />
-        <Card title="Charter a jet" href="/charter" body="Browse aircraft and empty legs." />
-        <Card title="Aviation services" href="/services" body="Hangars, FBO services, detailing, and more." />
-        <Card title="Aircraft for sale" href="/marketplace" body="Browse jets for sale." />
-        <Card title="My bookings" href="/bookings" body="Track your requests and trips." />
+        <Card title="Request a charter" href="/request" body="Tell us the trip; we send up to three verified aircraft options." />
+        <Card title="My trips" href="/trips" body="Options, agreements, payments, and itineraries in one place." />
+        {isStaff && <Card title="Broker desk" href="/desk" body="Trips, quotes, payments, and operators." />}
         {isOwner && (
           <Card title="My aircraft" href="/owner/aircraft" body="Manage your fleet and sale listings." />
         )}

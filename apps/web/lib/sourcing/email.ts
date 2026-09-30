@@ -97,3 +97,28 @@ export function parsePostmarkInbound(payload: Record<string, unknown>): InboundE
     headers,
   };
 }
+
+// Client and staff notifications (not RFQs): no CAN-SPAM footer, no reply
+// token. Env: NOTIFY_FROM_EMAIL, falls back to RFQ_FROM_EMAIL.
+export async function sendTransactionalEmail(msg: { to: string; subject: string; text: string; html?: string; tag?: string }): Promise<{ messageId: string }> {
+  const token = process.env.POSTMARK_SERVER_TOKEN;
+  if (!token) throw new Error("POSTMARK_SERVER_TOKEN is not set");
+  const from = process.env.NOTIFY_FROM_EMAIL ?? process.env.RFQ_FROM_EMAIL ?? "Jlaero <charter@jlaero.com>";
+  const res = await fetch("https://api.postmarkapp.com/email", {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json", "X-Postmark-Server-Token": token },
+    body: JSON.stringify({
+      From: from,
+      To: msg.to,
+      Subject: msg.subject,
+      TextBody: msg.text,
+      HtmlBody: msg.html,
+      MessageStream: process.env.POSTMARK_MESSAGE_STREAM ?? "outbound",
+      Tag: msg.tag ?? "notification",
+      TrackOpens: false,
+    }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || body.ErrorCode) throw new Error(`Postmark send failed: ${res.status} ${body.Message ?? ""}`);
+  return { messageId: body.MessageID as string };
+}
