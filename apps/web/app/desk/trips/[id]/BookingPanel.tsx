@@ -33,6 +33,14 @@ export async function BookingPanel({ data, isBroker, isFinance }: { data: DeskTr
   const draftItin = clientItins.find((i) => i.status === "draft") ?? null;
   const currentItin = clientItins.find((i) => i.status === "published") ?? null;
   const base = (draftItin ?? currentItin)?.content as ItineraryContent | undefined;
+  // Aircraft, tail and operator follow the booked aircraft unless a draft is
+  // being edited, so a replacement always carries into the next version.
+  const ac = draftItin ? (draftItin.content as ItineraryContent) : null;
+  const acDefaults = {
+    aircraft: ac?.aircraft ?? selected?.aircraft_type ?? base?.aircraft ?? "",
+    tail: ac?.tail_number ?? booking?.tail_number ?? selected?.tail_number ?? base?.tail_number ?? "",
+    operator: ac?.operator ?? selected?.operator_name ?? base?.operator ?? "",
+  };
   const proofUrls = new Map<string, string | null>();
   for (const p of [...payments, ...operatorPayments]) proofUrls.set(p.id, await signedUrl(p.proof_path));
   const itinUrls = new Map<string, string | null>();
@@ -264,9 +272,9 @@ export async function BookingPanel({ data, isBroker, isFinance }: { data: DeskTr
               <ActionForm action={saveItineraryAction.bind(null, trip.id)} submitLabel="Save draft" className="mt-4">
                 <input type="hidden" name="operator_itinerary_id" value={opItins[0]?.id ?? ""} />
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <Field label="Aircraft"><Input name="aircraft" defaultValue={base?.aircraft ?? selected?.aircraft_type ?? ""} required /></Field>
-                  <Field label="Tail number"><Input name="tail_number" defaultValue={base?.tail_number ?? booking?.tail_number ?? selected?.tail_number ?? ""} /></Field>
-                  <Field label="Operator"><Input name="operator" defaultValue={base?.operator ?? selected?.operator_name ?? ""} /></Field>
+                  <Field label="Aircraft"><Input key={acDefaults.aircraft} name="aircraft" defaultValue={acDefaults.aircraft} required /></Field>
+                  <Field label="Tail number"><Input key={acDefaults.tail} name="tail_number" defaultValue={acDefaults.tail} /></Field>
+                  <Field label="Operator"><Input key={acDefaults.operator} name="operator" defaultValue={acDefaults.operator} /></Field>
                   <Field label="Passengers"><Input name="passengers" inputMode="numeric" defaultValue={base?.passengers ?? trip.passengers} /></Field>
                   <Field label="Crew" className="sm:col-span-2"><Input name="crew" defaultValue={base?.crew ?? booking?.crew ?? ""} /></Field>
                 </div>

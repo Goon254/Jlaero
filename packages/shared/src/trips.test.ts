@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computePrice, localToInstant, clientStageIndex } from "./trips";
+import { computePrice, formatLocal, localToInstant, clientStageIndex } from "./trips";
 
 const settings = { default_markup_pct: 10, min_markup_pct: 5, catering_default: 0, vehicle_default: 0, service_fee: 0 };
 
@@ -43,5 +43,15 @@ describe("clientStageIndex", () => {
     expect(clientStageIndex("contract_sent")).toBe(2);
     expect(clientStageIndex("payment_pending")).toBe(3);
     expect(clientStageIndex("confirmed")).toBe(4);
+  });
+});
+
+describe("formatLocal", () => {
+  it("keeps the caller's time zone name option", () => {
+    const s = formatLocal("2026-10-15T19:30:00Z", "America/New_York", { hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+    expect(s).toBe("3:30 PM EDT");
+  });
+  it("shows the zone when falling back to UTC", () => {
+    expect(formatLocal("2026-10-15T19:30:00Z", null, { hour: "numeric", minute: "2-digit" })).toBe("7:30 PM UTC");
   });
 });

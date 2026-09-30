@@ -232,6 +232,7 @@ export async function findCandidates(trip: TripContext, limit = 12, opts: { incl
     else if (c.nearDest <= radius) { score += 25; reasons.push(`based ${Math.round(c.nearDest / MILES_TO_NM)} mi from ${trip.destination.icao}`); }
     else if (inNetwork && Number.isFinite(c.nearOrigin)) reasons.push(`outside the ${trip.radius_miles} mi radius`);
     if (c.nearby_now > 0) { score += 20 + Math.min(c.nearby_now, 5) * 4; reasons.push(`${c.nearby_now} suitable aircraft on the ground nearby now`); }
+    let stateNear = false;
     if (!inNetwork) {
       let bestState: string | null = null, bestDist = Infinity;
       for (const [st] of c.states) {
@@ -240,7 +241,7 @@ export async function findCandidates(trip: TripContext, limit = 12, opts: { incl
         const d = haversineNm(trip.origin.latitude, trip.origin.longitude, cen[0], cen[1]);
         if (d < bestDist) { bestDist = d; bestState = st; }
       }
-      if (bestState && bestDist <= 400) { score += 10; reasons.push(`fleet registered in ${bestState}`); }
+      if (bestState && bestDist <= 400) { score += 10; stateNear = true; reasons.push(`fleet registered in ${bestState}`); }
       c.state_hint = bestState;
     }
     // Step 4: aircraft requirements.
@@ -253,8 +254,9 @@ export async function findCandidates(trip: TripContext, limit = 12, opts: { incl
     score += Math.min(fit, 6) * 2;
     if (fit) reasons.push(`${fit} fitting aircraft: ${[...new Set(c.fleet.map((f) => f.model))].slice(0, 3).join(", ")}`);
     if (c.contact_email) score += 30; else reasons.push("no contact email yet");
-    // Prospects must show some geographic signal to be worth an email.
-    if (!inNetwork && score < 30) continue;
+    // Prospects must show some geographic signal to be worth an email: an
+    // aircraft on the ground nearby now, or a fleet registered in the region.
+    if (!inNetwork && c.nearby_now === 0 && !stateNear) continue;
     c.score = score;
     c.reason = reasons.join("; ");
     const { states, nearOrigin, nearDest, ...rest } = c;

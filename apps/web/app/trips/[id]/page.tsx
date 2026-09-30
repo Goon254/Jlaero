@@ -38,7 +38,7 @@ export default async function TripPage({ params }: { params: Promise<{ id: strin
     supabase.from("trip_contracts").select("id, contract_number, status, signed_at").eq("trip_id", id).order("created_at", { ascending: false }).limit(1),
     supabase.from("trip_payments").select("id, amount, currency, status, method, submitted_at, verified_at, failure_reason").eq("trip_id", id).order("created_at", { ascending: false }),
     supabase.from("client_itineraries").select("id, version, published_at").eq("trip_id", id).eq("status", "published").maybeSingle(),
-    supabase.from("trip_events").select("id, kind, to_status, message, created_at").eq("trip_id", id).order("created_at", { ascending: false }).limit(30),
+    supabase.from("trip_events").select("id, kind, to_status, message, created_at").eq("trip_id", id).eq("client_visible", true).order("created_at", { ascending: false }).limit(30),
     supabase.from("trip_feedback").select("rating, comments, created_at").eq("trip_id", id).maybeSingle(),
     loadClientSettings(),
   ]);
@@ -46,7 +46,10 @@ export default async function TripPage({ params }: { params: Promise<{ id: strin
   const contract = contractRes.data?.[0] ?? null;
   const payments = paymentsRes.data ?? [];
   const itinerary = itineraryRes.data;
-  const events = (eventsRes.data ?? []) as Event[];
+  // Several internal statuses share one client label; show each label once
+  // per run so the feed never reads "Completed, Completed".
+  const labelOf = (e: Event) => (e.kind === "status" && e.to_status ? (e.message === "Trip created" ? "Request received" : CLIENT_STATUS_LABELS[e.to_status]) : e.message ?? "");
+  const events = ((eventsRes.data ?? []) as Event[]).filter((e, i, all) => i === 0 || labelOf(e) !== labelOf(all[i - 1]!));
   const feedback = feedbackRes.data;
 
   const status = trip.status;
@@ -246,7 +249,7 @@ export default async function TripPage({ params }: { params: Promise<{ id: strin
                 {events.map((e) => (
                   <li key={e.id} className="relative pl-5">
                     <span className="absolute left-0 top-1.5 h-2 w-2 rounded-full bg-accent" aria-hidden />
-                    <p className="text-sm">{e.kind === "status" && e.to_status ? (e.message === "Trip created" ? "Request received" : CLIENT_STATUS_LABELS[e.to_status]) : e.message}</p>
+                    <p className="text-sm">{labelOf(e)}</p>
                     <p className="text-xs text-fg-3">{new Date(e.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
                   </li>
                 ))}

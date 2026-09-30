@@ -56,7 +56,7 @@ export function QuotesPanel({ data, isAdmin, operators }: { data: DeskTrip; isAd
                       </div>
                       <p className="mt-2 font-semibold">{q.aircraft_type}{q.year_mfr ? `, ${q.year_mfr}` : ""}{q.tail_number ? ` (${q.tail_number})` : ""}</p>
                       <p className="text-sm text-fg-2">
-                        {q.operator_name} · {q.passenger_capacity ? `${q.passenger_capacity} seats` : "seats not stated"} · availability {q.availability}
+                        {q.operator_name} · {q.passenger_capacity ? `${q.passenger_capacity} seats` : "seats not stated"} · {q.availability === "available" ? "Available" : q.availability === "unavailable" ? "Unavailable" : q.availability === "pending" ? "Availability pending" : "Availability unknown"}
                         {q.expires_at ? ` · expires ${formatLocal(q.expires_at, trip.o_tz, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` : ""}
                       </p>
                       {r && canSend && r.reasons.length > 0 && <p className="mt-1 text-xs text-accent-text">{r.reasons.join(" · ")}</p>}
@@ -150,7 +150,8 @@ export function QuotesPanel({ data, isAdmin, operators }: { data: DeskTrip; isAd
               <div className="grid gap-3 sm:grid-cols-3">
                 {[0, 1, 2].map((i) => (
                   <Field key={i} label={`Option ${i + 1}`}>
-                    <Select name={`option_${i + 1}`} defaultValue={slotDefault(i)}>
+                    {/* keyed so a new default remounts the select after a quote is added */}
+                    <Select key={slotDefault(i) || "none"} name={`option_${i + 1}`} defaultValue={slotDefault(i)}>
                       <option value="">None</option>
                       {sendable.map((q) => <option key={q.id} value={q.id}>{q.aircraft_type} · {q.operator_name} · ${Number(q.client_price).toLocaleString()}</option>)}
                     </Select>

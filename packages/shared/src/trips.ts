@@ -315,7 +315,9 @@ export function localToInstant(date: string, time: string | null | undefined, ti
 export function formatLocal(instant: Date | string, timeZone: string | null | undefined, opts: Intl.DateTimeFormatOptions = { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" }) {
   const d = typeof instant === "string" ? new Date(instant) : instant;
   try {
-    return new Intl.DateTimeFormat("en-US", { ...opts, timeZone: timeZone || "UTC", timeZoneName: timeZone ? undefined : "short" }).format(d);
+    // Callers may ask for the zone name; without a known zone we always show
+    // it so a UTC fallback is never mistaken for local time.
+    return new Intl.DateTimeFormat("en-US", { ...(timeZone ? {} : { timeZoneName: "short" }), ...opts, timeZone: timeZone || "UTC" }).format(d);
   } catch {
     return d.toUTCString();
   }

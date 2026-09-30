@@ -319,7 +319,7 @@ export async function approveSelection(tripId: string, actorId: string) {
         old: prev ? { quote_id: prev.quote_id, aircraft: prev.aircraft_type } : null,
         new: { quote_id: q.id, aircraft: q.aircraft_type, client_price: Number(q.client_price) },
       });
-      await tripEvent(tx, tripId, actorId, "operator", `Replacement approved: ${q.aircraft_type}. Confirm it with the operator.`, { clientVisible: true });
+      await tripEvent(tx, tripId, actorId, "operator", `Replacement approved: ${q.aircraft_type}. Confirm it with the operator.`);
       return { contractId: null };
     }
 
